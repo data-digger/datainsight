@@ -6,7 +6,11 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-
+/**
+ * 仪表盘实体对象
+ * @author lvlz
+ *
+ */
 
 @Entity
 @Table(name = "t_chart")
