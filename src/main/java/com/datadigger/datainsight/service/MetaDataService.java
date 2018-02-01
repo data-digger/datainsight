@@ -8,10 +8,12 @@ import com.datadigger.datainsight.bean.GridData;
 import com.datadigger.datainsight.domain.BizView;
 import com.datadigger.datainsight.domain.Chart;
 import com.datadigger.datainsight.domain.DataSource;
+import com.datadigger.datainsight.domain.Report;
 import com.datadigger.datainsight.query.SQLExecutor;
 import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
 import com.datadigger.datainsight.repository.DataSourceRepository;
+import com.datadigger.datainsight.repository.ReportRepository;
 @Service
 public class MetaDataService  {
 	private static final Logger log = Logger.getLogger(MetaDataService.class);
@@ -21,6 +23,8 @@ public class MetaDataService  {
     private BizViewRepository bizViewRespository;
     @Autowired
     private ChartRepository chartRespository;
+    @Autowired
+    private ReportRepository reportRespository;
 	private MetaDataService() {
 	}
 
@@ -32,6 +36,9 @@ public class MetaDataService  {
 	}
 	public Iterable<Chart> listAllChart(){
 		return chartRespository.findAll();
+	}
+	public Iterable<Report> listAllReport(){
+		return reportRespository.findAll();
 	}
 
 	public DataSource createDataSource(DataSource dataSource) {
@@ -70,4 +77,11 @@ public class MetaDataService  {
     	DataSource ds = dastaSourceRespository.findOne(dataSourceId);
     	return SQLExecutor.execute(ds, bizView.getDefineJSON());
     }
+    
+    public Report createReport(Report report) {
+    	report.setId("RP." + report.getName());
+    	reportRespository.save(report);
+		log.debug("Create report -- "+ report.getName());
+		return report;
+	}
 }
