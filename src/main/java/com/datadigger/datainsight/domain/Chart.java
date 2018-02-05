@@ -26,6 +26,8 @@ public class Chart implements  Serializable {
 	private String name;
 	
 	private String alias;
+	
+	private String type;
 
 	private String desc;
 
@@ -62,6 +64,16 @@ public class Chart implements  Serializable {
 
 	public void setAlias(String alias) {
 		this.alias = alias;
+	}
+	
+	@Column(name = "c_charttype")
+	public String getType() {
+		
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
 	}
 
 	@Column(name = "c_chartdesc")
