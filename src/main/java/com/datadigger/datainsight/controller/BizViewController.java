@@ -25,7 +25,7 @@ public class BizViewController {
     }
     @RequestMapping("/bizview/preview")
     public GridData perviewBizView(String bizViewId) { 	
-    	return metaDataService.previewBizView(bizViewId);
+    	return metaDataService.getGridData(bizViewId);
 
     }
 }
