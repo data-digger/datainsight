@@ -22,4 +22,10 @@ public class ReportController {
     		String reportId = metaDataService.createReport(report).getId();
     		return reportId;
     }
+    
+    @RequestMapping("/report/getone")
+    public Report getReport(String reportID) {
+    	   
+    		return metaDataService.getReport(reportID);
+    }
 }

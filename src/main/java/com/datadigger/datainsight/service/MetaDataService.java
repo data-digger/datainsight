@@ -85,4 +85,12 @@ public class MetaDataService  {
 		log.debug("Create report -- "+ report.getName());
 		return report;
 	}
+    
+    public Report getReport(String reportID) {
+    	
+    	Report r = reportRespository.findOne(reportID);
+    	
+    	log.debug(r.toJSON());
+    	return r;
+	}
 }

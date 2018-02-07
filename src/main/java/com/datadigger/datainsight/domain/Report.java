@@ -7,6 +7,9 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import com.alibaba.fastjson.JSON;
+
+
 /**
  * 
  * defineJSON:{
@@ -102,5 +105,17 @@ public class Report implements  Serializable {
 		} else
 			return false;
 	}
+	
+	public String toJSON(){
+		return JSON.toJSONString(this, true);
+	}
+	public String toString(){
+		return "id:" + id + "\n"
+			   +"name:" + name + "\n"
+			   +"alias:" + alias + "\n"
+			   +"desc:" + desc + "\n"
+			   +"defineJSON:" + defineJSON + "\n";
+	}
+	
 
 }
