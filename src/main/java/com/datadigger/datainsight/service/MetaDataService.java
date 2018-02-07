@@ -60,7 +60,7 @@ public class MetaDataService  {
 		return bizView;
 	}
 
-    public GridData previewBizView(String bizViewId){
+    public GridData getGridData(String bizViewId){
     	BizView bizView = bizViewRespository.findOne(bizViewId);
     	String dataSourceId = bizView.getDataSourceId();
     	DataSource ds = dastaSourceRespository.findOne(dataSourceId);
@@ -74,15 +74,6 @@ public class MetaDataService  {
 		return chart;
 	}
     
-    public GridData previewChart(String chartId){
-    	Chart chart = chartRespository.findOne(chartId);
-    	String bizViewId = chart.getBizViewId();
-    	BizView bizView = bizViewRespository.findOne(bizViewId);
-    	String dataSourceId = bizView.getDataSourceId();
-    	DataSource ds = dastaSourceRespository.findOne(dataSourceId);
-    	return SQLExecutor.execute(ds, bizView.getDefineJSON());
-    }
-    
     public Report createReport(Report report) {
     	report.setId(DomainType.RP.getDomainIDPrefix() + report.getName());
     	reportRespository.save(report);
@@ -92,12 +83,20 @@ public class MetaDataService  {
     
     public Report getReport(String reportID) {
     	
-    	Report r = reportRespository.findOne(reportID);
-    	
-    	log.debug(r.toJSON());
-    	return r;
+	    	Report r = reportRespository.findOne(reportID);
+	    	
+	    	log.debug(r.toJSON());
+	    	return r;
 	}
 
+    public GridData getChartData(String chartID) {
+    	       Chart chart = chartRespository.findOne(chartID);
+    	       GridData gd = getGridData(chart.getBizViewId());
+    	       return gd;
+    }
+    
+    	
+    
 	public ReportData getReportData(String reportID) {
 		 Report r = getReport(reportID);
 		 String defineJSON = r.getDefineJSON();
