@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.datadigger.datainsight.domain.Report;
+import com.datadigger.datainsight.domain.ReportData;
 import com.datadigger.datainsight.service.MetaDataService;
 
 @RestController
@@ -27,5 +28,11 @@ public class ReportController {
     public Report getReport(String reportID) {
     	   
     		return metaDataService.getReport(reportID);
+    }
+    @RequestMapping("/report/getdata")
+    public ReportData getReportData(String reportID) {
+    	   
+    	 return metaDataService.getReportData(reportID);
+    	 
     }
 }
