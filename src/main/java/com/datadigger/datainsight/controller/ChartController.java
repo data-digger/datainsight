@@ -33,7 +33,13 @@ public class ChartController {
     
     @RequestMapping("/chart/preview")
     public GridData perviewChart(String chartId) { 	
-    	return metaDataService.previewChart(chartId);
+    	return metaDataService.getChartData(chartId);
+
+    }
+    
+    @RequestMapping("/chart/getdata")
+    public GridData getChartData(String chartId) { 	
+    	return metaDataService.getChartData(chartId);
 
     }
 }
