@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.datadigger.datainsight.bean.GridData;
 import com.datadigger.datainsight.domain.ReportData;
 import com.datadigger.datainsight.domain.BizView;
@@ -97,9 +99,26 @@ public class MetaDataService  {
 	}
 
 	public ReportData getReportData(String reportID) {
-		 ReportData r = (ReportData)getReport(reportID);
+		 Report r = getReport(reportID);
 		 String defineJSON = r.getDefineJSON();
-		 Object o = JSON.parse(defineJSON);
+		 ReportData rd = new ReportData(r);
+		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
+		 JSONObject content = o.getJSONObject("content");
+		 JSONArray portlets = content.getJSONArray("portlets");
+		 for (int i = 0; i < portlets.size(); i++) {
+			 JSONObject portlet = portlets.getJSONObject(i);
+			 JSONArray tabs = portlet.getJSONArray("tabs");
+			 for(int j = 0; j < tabs.size(); j++) {
+				 JSONObject chart = tabs.getJSONObject(i);
+			 }
+			 
+		 }
 		return null;
+	}
+
+	public Chart getChart(String chartID) {
+		Chart chart = chartRespository.findOne(chartID);
+		
+		return chart;
 	}
 }

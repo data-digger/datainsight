@@ -31,38 +31,12 @@ public class ReportControllerTests {
     }
     @Test
     public void getReportData() throws Exception {
-    String content = "RP.dadd";
-    mvc.perform(MockMvcRequestBuilders.get("/report/getdata").accept(MediaType.APPLICATION_JSON).content(content))
+    String reportID = "RP.SakilaReport";
+    mvc.perform(MockMvcRequestBuilders.get("/report/getdata").accept(MediaType.APPLICATION_JSON).param("reportID",reportID))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
     }
-   
-//    @Test
-//    public void createChart() throws Exception {
-//    Chart chart = new Chart();
-//    chart.setId("CR.TEST");
-//    chart.setBizViewId("BZ.TEST");
-//    chart.setName("ChartName");
-//    chart.setAlias("ChartAlias");
-//    chart.setDesc("ChartDesc");
-//    chart.setDefineJSON("ChartDefine");
-//    ObjectMapper mapper = new ObjectMapper();
-//      ObjectWriter ow = mapper.writer().withDefaultPrettyPrinter();
-//      java.lang.String requestJson = ow.writeValueAsString(chart);
-//      
-//    mvc.perform(MockMvcRequestBuilders.post("/chart/new").contentType(MediaType.APPLICATION_JSON).content(requestJson))
-//                .andExpect(MockMvcResultMatchers.status().isOk())
-//                .andDo(MockMvcResultHandlers.print())
-//                .andReturn();
-//    }
-//    
-    @Test
-    public void getHello() throws Exception {
-    mvc.perform(MockMvcRequestBuilders.get("/hello").accept(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-    }
+  
 }
 
