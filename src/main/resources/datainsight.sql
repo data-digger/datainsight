@@ -4,4 +4,4 @@ CREATE TABLE t_bizview (c_viewid varchar(255) COLLATE utf8_bin NOT NULL, c_datas
 
 CREATE TABLE t_chart (c_chartid varchar(255) COLLATE utf8_bin NOT NULL, c_viewid varchar(255) COLLATE utf8_bin NOT NULL, c_chartname varchar(255) COLLATE utf8_bin NOT NULL, c_chartalias varchar(255) COLLATE utf8_bin, c_charttype varchar(255) COLLATE utf8_bin, c_chartdesc varchar(255) COLLATE utf8_bin, c_chartdefine longtext, PRIMARY KEY (c_chartid)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE t_report (c_reportid varchar(255) COLLATE utf8_bin NOT NULL, c_reportname varchar(255) COLLATE utf8_bin, c_reportalias varchar(255) COLLATE utf8_bin, c_define longtext, c_desc varchar(255) COLLATE utf8_bin, PRIMARY KEY (c_reportid)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+CREATE TABLE t_report (c_reportid varchar(255) COLLATE utf8_bin NOT NULL, c_reportname varchar(255) COLLATE utf8_bin, c_reportalias varchar(255) COLLATE utf8_bin, c_define longtext, c_reportdesc varchar(255) COLLATE utf8_bin, PRIMARY KEY (c_reportid)) ENGINE=InnoDB DEFAULT CHARSET=utf8;

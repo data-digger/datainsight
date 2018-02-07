@@ -24,6 +24,13 @@ public class ChartController {
     		String chartId = metaDataService.createChart(chart).getId();
     		return chartId;
     }
+    
+    @RequestMapping("/chart/getone")
+    public Chart getChart( String chartID) {
+    	    System.out.println("Chart is " + chartID);
+    		return metaDataService.getChart(chartID);
+    }
+    
     @RequestMapping("/chart/preview")
     public GridData perviewChart(String chartId) { 	
     	return metaDataService.previewChart(chartId);

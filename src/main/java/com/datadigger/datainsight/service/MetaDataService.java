@@ -4,7 +4,11 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.domain.ReportData;
 import com.datadigger.datainsight.domain.BizView;
 import com.datadigger.datainsight.domain.Chart;
 import com.datadigger.datainsight.domain.DataSource;
@@ -56,7 +60,7 @@ public class MetaDataService  {
 		return bizView;
 	}
 
-    public GridData previewBizView(String bizViewId){
+    public GridData getGridData(String bizViewId){
     	BizView bizView = bizViewRespository.findOne(bizViewId);
     	String dataSourceId = bizView.getDataSourceId();
     	DataSource ds = dastaSourceRespository.findOne(dataSourceId);
@@ -70,15 +74,6 @@ public class MetaDataService  {
 		return chart;
 	}
     
-    public GridData previewChart(String chartId){
-    	Chart chart = chartRespository.findOne(chartId);
-    	String bizViewId = chart.getBizViewId();
-    	BizView bizView = bizViewRespository.findOne(bizViewId);
-    	String dataSourceId = bizView.getDataSourceId();
-    	DataSource ds = dastaSourceRespository.findOne(dataSourceId);
-    	return SQLExecutor.execute(ds, bizView.getDefineJSON());
-    }
-    
     public Report createReport(Report report) {
     	report.setId(DomainType.RP.getDomainIDPrefix() + report.getName());
     	reportRespository.save(report);
@@ -88,9 +83,41 @@ public class MetaDataService  {
     
     public Report getReport(String reportID) {
     	
-    	Report r = reportRespository.findOne(reportID);
+	    	Report r = reportRespository.findOne(reportID);
+	    	
+	    	log.debug(r.toJSON());
+	    	return r;
+	}
+
+    public GridData getChartData(String chartID) {
+    	       Chart chart = chartRespository.findOne(chartID);
+    	       GridData gd = getGridData(chart.getBizViewId());
+    	       return gd;
+    }
+    
     	
-    	log.debug(r.toJSON());
-    	return r;
+    
+	public ReportData getReportData(String reportID) {
+		 Report r = getReport(reportID);
+		 String defineJSON = r.getDefineJSON();
+		 ReportData rd = new ReportData(r);
+		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
+		 JSONObject content = o.getJSONObject("content");
+		 JSONArray portlets = content.getJSONArray("portlets");
+		 for (int i = 0; i < portlets.size(); i++) {
+			 JSONObject portlet = portlets.getJSONObject(i);
+			 JSONArray tabs = portlet.getJSONArray("tabs");
+			 for(int j = 0; j < tabs.size(); j++) {
+				 JSONObject chart = tabs.getJSONObject(i);
+			 }
+			 
+		 }
+		return null;
+	}
+
+	public Chart getChart(String chartID) {
+		Chart chart = chartRespository.findOne(chartID);
+		
+		return chart;
 	}
 }

@@ -47,7 +47,6 @@ public class Report implements  Serializable {
 	private String defineJSON;
 	
 	
-	
 	@Id
 	@Column(name = "c_reportid")
 	public String getId() {
