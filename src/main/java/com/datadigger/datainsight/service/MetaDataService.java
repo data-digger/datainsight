@@ -1,5 +1,10 @@
 package com.datadigger.datainsight.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -104,15 +109,22 @@ public class MetaDataService  {
 		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
 		 JSONObject content = o.getJSONObject("content");
 		 JSONArray portlets = content.getJSONArray("portlets");
+		 List<Map<String,GridData>> data = new ArrayList<Map<String,GridData>>();
 		 for (int i = 0; i < portlets.size(); i++) {
 			 JSONObject portlet = portlets.getJSONObject(i);
 			 JSONArray tabs = portlet.getJSONArray("tabs");
 			 for(int j = 0; j < tabs.size(); j++) {
 				 JSONObject chart = tabs.getJSONObject(i);
+				 String chartId = chart.getString("objid");
+				 Map<String,GridData> map = new HashMap<String,GridData>();
+				 GridData gd  =getChartData(chartId);
+				 map.put(chartId, gd);
+				 data.add(map);
 			 }
 			 
 		 }
-		return null;
+		 rd.setData(data);
+		return rd;
 	}
 
 	public Chart getChart(String chartID) {
