@@ -16,6 +16,7 @@ import com.datadigger.datainsight.bean.GridData;
 import com.datadigger.datainsight.domain.ReportData;
 import com.datadigger.datainsight.domain.BizView;
 import com.datadigger.datainsight.domain.Chart;
+import com.datadigger.datainsight.domain.ChartData;
 import com.datadigger.datainsight.domain.DataSource;
 import com.datadigger.datainsight.domain.DomainType;
 import com.datadigger.datainsight.domain.Report;
@@ -109,16 +110,19 @@ public class MetaDataService  {
 		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
 		 JSONObject content = o.getJSONObject("content");
 		 JSONArray portlets = content.getJSONArray("portlets");
-		 List<Map<String,GridData>> data = new ArrayList<Map<String,GridData>>();
+		 List<Map<String,ChartData>> data = new ArrayList<Map<String,ChartData>>();
 		 for (int i = 0; i < portlets.size(); i++) {
 			 JSONObject portlet = portlets.getJSONObject(i);
 			 JSONArray tabs = portlet.getJSONArray("tabs");
 			 for(int j = 0; j < tabs.size(); j++) {
-				 JSONObject chart = tabs.getJSONObject(i);
-				 String chartId = chart.getString("objid");
-				 Map<String,GridData> map = new HashMap<String,GridData>();
+				 JSONObject jchart = tabs.getJSONObject(i);
+				 String chartId = jchart.getString("objid");
+				 Map<String,ChartData> map = new HashMap<String,ChartData>();
+				 Chart chart = getChart(chartId);
 				 GridData gd  =getChartData(chartId);
-				 map.put(chartId, gd);
+				 ChartData cd =  new ChartData(chart);
+				 cd.setGridData(gd);
+				 map.put(chartId,cd);
 				 data.add(map);
 			 }
 			 
