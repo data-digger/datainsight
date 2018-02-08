@@ -110,9 +110,10 @@ public class MetaDataService  {
 		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
 		 JSONObject content = o.getJSONObject("content");
 		 JSONArray portlets = content.getJSONArray("portlets");
-		 List<Map<String,ChartData>> data = new ArrayList<Map<String,ChartData>>();
+		 List<ChartData> data = new ArrayList<ChartData>();
 		 for (int i = 0; i < portlets.size(); i++) {
 			 JSONObject portlet = portlets.getJSONObject(i);
+			 String portletID = portlet.getString("id");
 			 JSONArray tabs = portlet.getJSONArray("tabs");
 			 for(int j = 0; j < tabs.size(); j++) {
 				 JSONObject jchart = tabs.getJSONObject(i);
@@ -121,9 +122,9 @@ public class MetaDataService  {
 				 Chart chart = getChart(chartId);
 				 GridData gd  =getChartData(chartId);
 				 ChartData cd =  new ChartData(chart);
+				 cd.setPortletID(portletID);
 				 cd.setGridData(gd);
-				 map.put(chartId,cd);
-				 data.add(map);
+				 data.add(cd);
 			 }
 			 
 		 }
