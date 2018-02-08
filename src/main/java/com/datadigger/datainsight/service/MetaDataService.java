@@ -113,12 +113,11 @@ public class MetaDataService  {
 		 List<ChartData> data = new ArrayList<ChartData>();
 		 for (int i = 0; i < portlets.size(); i++) {
 			 JSONObject portlet = portlets.getJSONObject(i);
-			 String portletID = portlet.getString("id");
+			 String portletID = portlet.getString("portletID");
 			 JSONArray tabs = portlet.getJSONArray("tabs");
 			 for(int j = 0; j < tabs.size(); j++) {
 				 JSONObject jchart = tabs.getJSONObject(j);
 				 String chartId = jchart.getString("objid");
-				 Map<String,ChartData> map = new HashMap<String,ChartData>();
 				 Chart chart = getChart(chartId);
 				 GridData gd  =getChartData(chartId);
 				 ChartData cd =  new ChartData(chart);
