@@ -116,7 +116,7 @@ public class MetaDataService  {
 			 String portletID = portlet.getString("id");
 			 JSONArray tabs = portlet.getJSONArray("tabs");
 			 for(int j = 0; j < tabs.size(); j++) {
-				 JSONObject jchart = tabs.getJSONObject(i);
+				 JSONObject jchart = tabs.getJSONObject(j);
 				 String chartId = jchart.getString("objid");
 				 Map<String,ChartData> map = new HashMap<String,ChartData>();
 				 Chart chart = getChart(chartId);
