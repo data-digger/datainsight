@@ -20,11 +20,13 @@ import com.datadigger.datainsight.domain.ChartData;
 import com.datadigger.datainsight.domain.DataSource;
 import com.datadigger.datainsight.domain.DomainType;
 import com.datadigger.datainsight.domain.Report;
+import com.datadigger.datainsight.domain.DataTable;
 import com.datadigger.datainsight.query.SQLExecutor;
 import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
 import com.datadigger.datainsight.repository.DataSourceRepository;
 import com.datadigger.datainsight.repository.ReportRepository;
+import com.datadigger.datainsight.repository.DataTableRepository;
 @Service
 public class MetaDataService  {
 	private static final Logger log = Logger.getLogger(MetaDataService.class);
@@ -36,6 +38,8 @@ public class MetaDataService  {
     private ChartRepository chartRespository;
     @Autowired
     private ReportRepository reportRespository;
+    @Autowired
+    private DataTableRepository dataTableRepository;
 	private MetaDataService() {
 	}
 
@@ -50,6 +54,9 @@ public class MetaDataService  {
 	}
 	public Iterable<Report> listAllReport(){
 		return reportRespository.findAll();
+	}
+	public Iterable<DataTable> listAllDataTable(){
+		return dataTableRepository.findAll();
 	}
 
 	public DataSource createDataSource(DataSource dataSource) {
@@ -80,6 +87,13 @@ public class MetaDataService  {
 		return chart;
 	}
     
+    public DataTable createDataTable(DataTable dataTable) {
+    	dataTable.setId(DomainType.DT.getDomainIDPrefix() + dataTable.getName());
+    	dataTableRepository.save(dataTable);
+		log.debug("Create dataTable -- "+ dataTable.getName());
+		return dataTable;
+	}
+    
     public Report createReport(Report report) {
     	report.setId(DomainType.RP.getDomainIDPrefix() + report.getName());
     	reportRespository.save(report);
@@ -99,6 +113,12 @@ public class MetaDataService  {
     	       Chart chart = chartRespository.findOne(chartID);
     	       GridData gd = getGridData(chart.getBizViewId());
     	       return gd;
+    }
+    
+    public GridData getTableData(String tableID) {
+	       DataTable table = dataTableRepository.findOne(tableID);
+	       GridData gd = getGridData(table.getBizViewId());
+	       return gd;
     }
     
     	

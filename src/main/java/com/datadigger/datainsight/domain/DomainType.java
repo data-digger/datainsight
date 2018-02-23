@@ -4,7 +4,8 @@ public enum DomainType {
     DS("DS"),
     CR("CR"),
     BZ("BZ"),
-    RP("RP");
+    RP("RP"),
+	DT("DT");
 	
 	private String name;
 	DomainType(String name){
