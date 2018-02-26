@@ -21,6 +21,7 @@ import com.datadigger.datainsight.domain.DataSource;
 import com.datadigger.datainsight.domain.DomainType;
 import com.datadigger.datainsight.domain.Report;
 import com.datadigger.datainsight.domain.DataTable;
+import com.datadigger.datainsight.domain.TableData;
 import com.datadigger.datainsight.query.SQLExecutor;
 import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
@@ -121,8 +122,23 @@ public class MetaDataService  {
 	       return gd;
     }
     
-    	
-    
+    public ChartData getReptChart(String chartID,String portletID) {
+    		 Chart chart = getChart(chartID);
+		 GridData gd  =getChartData(chartID);
+		 ChartData cd =  new ChartData(chart);
+		 cd.setPortletID(portletID);
+		 cd.setGridData(gd);
+	     return cd;
+    }
+    public TableData getReptTable(String tableID,String portletID) {
+    	 	 DataTable dt = getTable(tableID);
+		 GridData gd = getTableData(tableID);
+		 TableData td = new TableData(dt);
+		 td.setGridData(gd);
+		 td.setPortletID(portletID);
+	     return td;
+    }
+
 	public ReportData getReportData(String reportID) {
 		 Report r = getReport(reportID);
 		 String defineJSON = r.getDefineJSON();
@@ -130,30 +146,39 @@ public class MetaDataService  {
 		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
 		 JSONObject content = o.getJSONObject("content");
 		 JSONArray portlets = content.getJSONArray("portlets");
-		 List<ChartData> data = new ArrayList<ChartData>();
+		 List<ChartData> chartData = new ArrayList<ChartData>();
+		 List<TableData> tableData = new ArrayList<TableData>();
 		 for (int i = 0; i < portlets.size(); i++) {
 			 JSONObject portlet = portlets.getJSONObject(i);
 			 String portletID = portlet.getString("portletID");
 			 JSONArray tabs = portlet.getJSONArray("tabs");
 			 for(int j = 0; j < tabs.size(); j++) {
-				 JSONObject jchart = tabs.getJSONObject(j);
-				 String chartId = jchart.getString("objid");
-				 Chart chart = getChart(chartId);
-				 GridData gd  =getChartData(chartId);
-				 ChartData cd =  new ChartData(chart);
-				 cd.setPortletID(portletID);
-				 cd.setGridData(gd);
-				 data.add(cd);
+				 JSONObject jobj = tabs.getJSONObject(j);
+				 String objtype = jobj.getString("objtype");
+				 String objid = jobj.getString("objid");
+				 if(objtype.equals("Table")) {
+					 TableData td = getReptTable(objid,portletID);
+					 tableData.add(td);
+				 } else {
+					 ChartData cd =  getReptChart(objid,portletID);
+					 chartData.add(cd);
+				 }
+				 
 			 }
 			 
 		 }
-		 rd.setData(data);
-		return rd;
+		 rd.setChartData(chartData);
+		 rd.setTableData(tableData);
+		 return rd;
 	}
 
 	public Chart getChart(String chartID) {
 		Chart chart = chartRespository.findOne(chartID);
 		
 		return chart;
+	}
+	public DataTable getTable(String tableID) {
+		DataTable table = dataTableRepository.findOne(tableID);	
+		return table;
 	}
 }
