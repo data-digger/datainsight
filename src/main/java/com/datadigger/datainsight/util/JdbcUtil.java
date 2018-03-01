@@ -2,10 +2,13 @@ package com.datadigger.datainsight.util;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 
+import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.domain.DataSource;
 import com.datadigger.datainsight.exception.DataDiggerErrorCode;
 import com.datadigger.datainsight.exception.DataDiggerException;
 
@@ -32,5 +35,21 @@ public class JdbcUtil {
 		dbPrep = dbConn.prepareStatement(sql, resultSetType,
 				resultSetConcurrency);
 		return dbPrep;
+	}
+	
+	public static void executeInsert(DataSource ds, String sql) {
+		Connection conn = null;
+		PreparedStatement prep = null;
+		ResultSet rs = null;
+		String dbType = ds.getDriverType();
+		String charset = ds.getDbCharset();
+		try{
+			conn = ConnectionPool.getInstance().getConnection(ds);
+			
+			prep = JdbcUtil.prepareStatement(conn,sql);
+			boolean success = prep.execute();
+		}catch(Exception e){
+			log.debug(e.getMessage());
+		}
 	}
 }
