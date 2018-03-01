@@ -42,7 +42,8 @@ public class DataSource implements IConnectionInfo,Serializable{
 	@Column(name = "c_isolation" ,nullable = false)
 	private int transactionIsolation;
 
-	protected DataSource(){
+	
+	public DataSource(){
 		// no-args constructor required by JPA spec
 				// this one is protected since it shouldn't be used directly
 	}
