@@ -427,42 +427,42 @@ public class Expression implements IExpressionItem,Serializable{
 				 *���
 				 *�ڲ��ϲ�������ʱ��ֻ��鱸ѡֵ���Ӳ���*/
 
-				if (tmpParam.checkCombinPara()) 
-				{
-					if (tmpParam.getDefaultType().equals(ParamExprType.SQL))
-					{
-						String defaultValue = tmpParam.getDefaultValue();
-						if (!StringUtil.isNullOrEmpty(defaultValue))
-						{
-							Expression exp = new Expression(defaultValue);
-							exp.fillParamIDs(paramIDs);
-						}
-					}
-				}
-				if (tmpParam.getStandByType().equals(ParamExprType.SQL))
-				{
-					String standByValue = tmpParam.getStandByValue();
-					if (!StringUtil.isNullOrEmpty(standByValue))
-					{
-						Expression exp = new Expression(tmpParam.getStandByValue());
-						exp.fillParamIDs(paramIDs);
-					}
-				}
-				if (!tmpParam.checkCombinPara()) {   //���ϲ��������
-					paramIDs.add(tmpId);
-					ignorableParamMap.get().put(tmpId, ignorable);
-				} else if (!paramIDs.contains(tmpId)) {//�ϲ�����������б���û��
-					paramIDs.add(tmpId);
-					ignorableParamMap.get().put(tmpId, ignorable);
-				} else {//����ϲ����б����������Ҫ�޸Ĳ����Ƿ���Ե�ֵ
-					boolean tmp_ignorable =ignorableParamMap.get().get(tmpId);
-					ignorableParamMap.get().put(tmpId, ignorable && tmp_ignorable);
-				}
-			} 
-			else if (item instanceof Expression) {
-				Expression expression = (Expression)item;
-				expression.fillParamIDs(paramIDs);				
-			}
+//				if (tmpParam.checkCombinPara()) 
+//				{
+//					if (tmpParam.getDefaultType().equals(ParamExprType.SQL))
+//					{
+//						String defaultValue = tmpParam.getDefaultValue();
+//						if (!StringUtil.isNullOrEmpty(defaultValue))
+//						{
+//							Expression exp = new Expression(defaultValue);
+//							exp.fillParamIDs(paramIDs);
+//						}
+//					}
+//				}
+//				if (tmpParam.getStandByType().equals(ParamExprType.SQL))
+//				{
+//					String standByValue = tmpParam.getStandByValue();
+//					if (!StringUtil.isNullOrEmpty(standByValue))
+//					{
+//						Expression exp = new Expression(tmpParam.getStandByValue());
+//						exp.fillParamIDs(paramIDs);
+//					}
+//				}
+//				if (!tmpParam.checkCombinPara()) {   //���ϲ��������
+//					paramIDs.add(tmpId);
+//					ignorableParamMap.get().put(tmpId, ignorable);
+//				} else if (!paramIDs.contains(tmpId)) {//�ϲ�����������б���û��
+//					paramIDs.add(tmpId);
+//					ignorableParamMap.get().put(tmpId, ignorable);
+//				} else {//����ϲ����б����������Ҫ�޸Ĳ����Ƿ���Ե�ֵ
+//					boolean tmp_ignorable =ignorableParamMap.get().get(tmpId);
+//					ignorableParamMap.get().put(tmpId, ignorable && tmp_ignorable);
+//				}
+		} 
+//			else if (item instanceof Expression) {
+//				Expression expression = (Expression)item;
+//				expression.fillParamIDs(paramIDs);				
+//			}
 //			if (item instanceof Function){
 //				((Function)item).getSkinExpression().fillParamIDs(paramIDs);				
 //			}
