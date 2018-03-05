@@ -19,6 +19,13 @@ public enum DataDiggerErrorCode {
 	OBJECT_NOT_FOUND_ERROR,
 	SQL_ERROR,
 	OBJECT_POOL_ERROR,
+	EXPR_NOT_SUPPORTED_ITEM_TYPE,
+	EXPR_NOT_SUPPORTED_NODE_TYPE,
+	EXPR_PARAME_NULL_VALUE,
+	EXPR_PARSE_ERROR,
+	EXPR_PARSE_ITEM_LOST,
+	EXPR_UNKNOWN_NODE_TYPE,
+	
 	;
 	
 	private static final MessageHelper helper = MessageHelper.getInstance(DataDiggerErrorCode.class);
