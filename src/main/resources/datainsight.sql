@@ -8,6 +8,16 @@ CREATE TABLE t_report (c_reportid varchar(255) COLLATE utf8_bin NOT NULL, c_repo
 
 CREATE TABLE t_table (c_tableid varchar(255) COLLATE utf8_bin NOT NULL, c_viewid varchar(255) COLLATE utf8_bin NOT NULL, c_tablename varchar(255) COLLATE utf8_bin, c_tablealias varchar(255) COLLATE utf8_bin, c_tabledesc varchar(255) COLLATE utf8_bin, PRIMARY KEY (c_tableid)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE t_parameter 
+(c_parmid varchar(255) COLLATE utf8_bin NOT NULL, 
+c_parmname varchar(255) COLLATE utf8_bin, 
+c_parmalias varchar(255) COLLATE utf8_bin, 
+c_parmdesc varchar(255) COLLATE utf8_bin, 
+c_paramtype varchar(255) COLLATE utf8_bin,
+c_controltype varchar(255) COLLATE utf8_bin,
+c_parmdefine longtext, 
+PRIMARY KEY (c_parmid)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE DATABASE `demo_db` /*!40100 DEFAULT CHARACTER SET utf8 */;
 CREATE TABLE `t_sina_news` (
   `id` varchar(255) NOT NULL,
