@@ -14,7 +14,10 @@ c_parmname varchar(255) COLLATE utf8_bin,
 c_parmalias varchar(255) COLLATE utf8_bin, 
 c_parmdesc varchar(255) COLLATE utf8_bin, 
 c_paramtype varchar(255) COLLATE utf8_bin,
-c_controltype varchar(255) COLLATE utf8_bin,
+c_valuetype varchar(255) COLLATE utf8_bin,
+c_componenttype varchar(255) COLLATE utf8_bin,
+c_defaultvalue varchar(255) COLLATE utf8_bin,
+c_paramvalue varchar(255) COLLATE utf8_bin,
 c_parmdefine longtext, 
 PRIMARY KEY (c_parmid)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

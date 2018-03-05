@@ -22,12 +22,14 @@ import com.datadigger.datainsight.domain.DomainType;
 import com.datadigger.datainsight.domain.Report;
 import com.datadigger.datainsight.domain.DataTable;
 import com.datadigger.datainsight.domain.TableData;
+import com.datadigger.datainsight.domain.Parameter;
 import com.datadigger.datainsight.query.SQLExecutor;
 import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
 import com.datadigger.datainsight.repository.DataSourceRepository;
 import com.datadigger.datainsight.repository.ReportRepository;
 import com.datadigger.datainsight.repository.DataTableRepository;
+import com.datadigger.datainsight.repository.ParameterRepository;
 @Service
 public class MetaDataService  {
 	private static final Logger log = Logger.getLogger(MetaDataService.class);
@@ -41,6 +43,8 @@ public class MetaDataService  {
     private ReportRepository reportRespository;
     @Autowired
     private DataTableRepository dataTableRepository;
+    @Autowired
+    private ParameterRepository parameterRepository;
 	private MetaDataService() {
 	}
 
@@ -58,6 +62,9 @@ public class MetaDataService  {
 	}
 	public Iterable<DataTable> listAllDataTable(){
 		return dataTableRepository.findAll();
+	}
+	public Iterable<Parameter> listAllParameter(){
+		return parameterRepository.findAll();
 	}
 
 	public DataSource createDataSource(DataSource dataSource) {
@@ -100,6 +107,13 @@ public class MetaDataService  {
     	reportRespository.save(report);
 		log.debug("Create report -- "+ report.getName());
 		return report;
+	}
+    
+    public Parameter createParameter(Parameter parameter) {
+    	parameter.setId(DomainType.PA.getDomainIDPrefix() + parameter.getName());
+    	parameterRepository.save(parameter);
+		log.debug("Create parameter -- "+ parameter.getName());
+		return parameter;
 	}
     
     public Report getReport(String reportID) {

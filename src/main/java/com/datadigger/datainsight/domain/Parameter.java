@@ -32,42 +32,52 @@ public class Parameter implements Serializable{
 	
 	private String alias;
 
-	private ValueType type;
-
 	private String desc;
-
-	private ParamExprType standByType;
-
-	private String standByValue;
-
-	private ParamExprType defaultType;
+	
+	private String paramType;
+	
+	private String valueType;
+	
+	private String componentType;
 
 	private String defaultValue;
+	
+	private String paramValue;
+	
+	private String defineJSON;
+	
+	//private ValueType type;
+	
+	//private ParamValue paramValue;
+	
+	//private ParamExprType defaultType;
 
-	private boolean display;
+	//private boolean display;
 
-	private boolean manual;
+	//private boolean manual;
 
 	//private ComponentType componentType;
 
-	private String componentDefine;
+	//private String componentDefine;
 	
-	private DataSource dataSource;
+	//private DataSource dataSource;
 	
-	private ParamValue paramValue;
+	//private ParamExprType rootType;
 	
-	private ParamExprType rootType;
-	
-	private String rootValue;
+	//private String rootValue;
 	
 	//private DropDownTreeExtendType treeExtType;
 
-	private String checkedInStandby;
+	//private String checkedInStandby;
 	
-	private boolean multSelect;
+	//private boolean multSelect;
+	
+	//private ParamExprType standByType;
+
+	//private String standByValue;
 	
 	@Id
-	@Column(name = "c_paramid")
+	@Column(name = "c_parmid")
 	public String getId() {
 		return id;
 	}
@@ -76,7 +86,7 @@ public class Parameter implements Serializable{
 		this.id = id;
 	}
 
-	@Column(name = "c_paramname", nullable = false)
+	@Column(name = "c_parmname", nullable = false)
 	public String getName() {
 		return name;
 	}
@@ -85,7 +95,7 @@ public class Parameter implements Serializable{
 		this.name = name;
 	}
 	
-	@Column(name = "c_paramalias")
+	@Column(name = "c_parmalias")
 	public String getAlias() {
 		if (StringUtil.isNullOrEmpty(alias))
 			return getName();
@@ -95,8 +105,67 @@ public class Parameter implements Serializable{
 	public void setAlias(String alias) {
 		this.alias = alias;
 	}
-
+	
+	@Column(name = "c_parmdesc")
+	public String getDesc() {
+		return desc;
+	}
+	
+	public void setDesc(String desc) {
+		this.desc = desc;
+	}
 	@Column(name = "c_paramtype")
+	public String getParamType() {
+		return paramType;
+	}
+	
+	public void setParamType(String paramType) {
+		this.paramType = paramType;
+	}
+	@Column(name = "c_valuetype")
+	public String getValueType() {
+		return valueType;
+	}
+	
+	public void setValueType(String valueType) {
+		this.valueType = valueType;
+	}
+	@Column(name = "c_componenttype")
+	public String getComponentType() {
+		return componentType;
+	}
+	
+	public void setComponentType(String componentType) {
+		this.componentType = componentType;
+	}
+	@Column(name = "c_defaultvalue")
+	public String getDefaultValue() {
+		return defaultValue;
+	}
+	
+	public void setDefaultValue(String defaultValue) {
+		this.defaultValue = defaultValue;
+	}
+	@Column(name = "c_paramvalue")
+	public String getParamValue() {
+		return paramValue;
+	}
+	
+	public void setParamValue(String paramValue) {
+		this.paramValue = paramValue;
+	}
+	@Column(name = "c_parmdefine")
+	public String getDefineJSON() {
+		if(defineJSON == null)
+			return defineJSON;
+		return defineJSON.trim();
+	}
+
+	public void setDefineJSON(String defineJSON) {
+		this.defineJSON = defineJSON.trim();
+	}
+
+	/*@Column(name = "c_paramtype")
 	@Type(type = "org.hibernate.type.EnumType", parameters = {
 			@org.hibernate.annotations.Parameter(name = org.hibernate.type.EnumType.ENUM, value = "bof.util.ValueType"),
 			@org.hibernate.annotations.Parameter(name = org.hibernate.type.EnumType.TYPE, value = Types.VARCHAR + "") }) 	
@@ -262,7 +331,7 @@ public class Parameter implements Serializable{
 
 	public void setCheckedInStandby(String checkedInStandby) {
 		this.checkedInStandby = checkedInStandby;
-	}
+	}*/
 	
 	/**
 	 * �Ƿ�ϲ��������
@@ -270,7 +339,7 @@ public class Parameter implements Serializable{
 	 * @return true  �ϲ�
 	 *         false ���ϲ�
 	 */
-	public boolean checkCombinPara()
+	/*public boolean checkCombinPara()
 	{
 		int position = this.componentDefine.indexOf("combinPara");
 		if (position<0)                                             
@@ -305,7 +374,7 @@ public class Parameter implements Serializable{
 		sb.append(str.substring(lastIndex));
 		
 		return sb.toString();
-	}
+	}*/
 
 }
 
