@@ -17,6 +17,16 @@ import com.datadigger.datainsight.type.ParamType;
 import com.datadigger.datainsight.util.StringUtil;
 import com.datadigger.datainsight.util.ValueType;
 
+/**
+ * 
+ * defineJSON:{
+ *   componetType:"TREE",//LIST,DATE
+     valueType:"String",  //Integer //Double
+     valueSource:"static", //SQL
+     defalutDefinedefine:{{"key","value"}}, // {select key,value from table}
+     standbyDefinedefine:{{"key","value"}}, // {select key,value from table}   
+ * }
+ */
 
 @Entity
 @Table(name = "t_parameter")
@@ -33,16 +43,6 @@ public class Parameter implements Serializable{
 	private String alias;
 
 	private String desc;
-	
-	private String paramType;
-	
-	private String valueType;
-	
-	private String componentType;
-
-	private String defaultValue;
-	
-	private String paramValue;
 	
 	private String defineJSON;
 	
@@ -113,46 +113,6 @@ public class Parameter implements Serializable{
 	
 	public void setDesc(String desc) {
 		this.desc = desc;
-	}
-	@Column(name = "c_paramtype")
-	public String getParamType() {
-		return paramType;
-	}
-	
-	public void setParamType(String paramType) {
-		this.paramType = paramType;
-	}
-	@Column(name = "c_valuetype")
-	public String getValueType() {
-		return valueType;
-	}
-	
-	public void setValueType(String valueType) {
-		this.valueType = valueType;
-	}
-	@Column(name = "c_componenttype")
-	public String getComponentType() {
-		return componentType;
-	}
-	
-	public void setComponentType(String componentType) {
-		this.componentType = componentType;
-	}
-	@Column(name = "c_defaultvalue")
-	public String getDefaultValue() {
-		return defaultValue;
-	}
-	
-	public void setDefaultValue(String defaultValue) {
-		this.defaultValue = defaultValue;
-	}
-	@Column(name = "c_paramvalue")
-	public String getParamValue() {
-		return paramValue;
-	}
-	
-	public void setParamValue(String paramValue) {
-		this.paramValue = paramValue;
 	}
 	@Column(name = "c_parmdefine")
 	public String getDefineJSON() {
