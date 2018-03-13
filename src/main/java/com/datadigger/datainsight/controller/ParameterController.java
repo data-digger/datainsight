@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.bean.ParameterValue;
 import com.datadigger.datainsight.domain.Parameter;
 import com.datadigger.datainsight.service.MetaDataService;
 
@@ -23,4 +24,10 @@ public class ParameterController {
     		String parameterId = metaDataService.createParameter(parameter).getId();
     		return parameterId;
     }
+    @RequestMapping("/parameter/getValue")
+    public ParameterValue getParameterValue(String paramId) {
+    		ParameterValue pv = metaDataService.getParameterValue(paramId);
+    		return pv;
+    }
+    
 }

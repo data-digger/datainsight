@@ -3,9 +3,7 @@ package com.datadigger.datainsight.service;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +18,7 @@ import com.datadigger.datainsight.bean.DefaultParameter;
 import com.datadigger.datainsight.bean.GridData;
 import com.datadigger.datainsight.bean.DateParameter;
 import com.datadigger.datainsight.bean.ListParameter;
+import com.datadigger.datainsight.bean.ParameterValue;
 import com.datadigger.datainsight.bean.ParamGridData;
 import com.datadigger.datainsight.domain.ReportData;
 import com.datadigger.datainsight.domain.BizView;
@@ -95,6 +94,12 @@ public class MetaDataService  {
     		return SQLExecutor.execute(ds, bizView.getDefineJSON());
 	}
 	
+	public Matcher matchRegEx (String sentence, String regEx) {
+		Pattern pattern = Pattern.compile(regEx);
+		Matcher matcher = pattern.matcher(sentence);
+		return matcher;
+	}
+	
     public ParamGridData getParamGridData(String bizViewId){
 	    	BizView bizView = bizViewRespository.findOne(bizViewId);
 	    	String dataSourceId = bizView.getDataSourceId();
@@ -106,11 +111,7 @@ public class MetaDataService  {
 	    List<DefaultParameter> dpList = new ArrayList<DefaultParameter>();
 	    // 正则表达式规则
 	    String regEx = "\\^.*?\\^";
-	    // 编译正则表达式
-	    Pattern pattern = Pattern.compile(regEx);
-	    // 忽略大小写的写法
-	    // Pattern pat = Pattern.compile(regEx, Pattern.CASE_INSENSITIVE);
-	    Matcher matcher = pattern.matcher(defineJSON);
+	    Matcher matcher = matchRegEx(defineJSON,regEx);
 	    // 查找字符串中匹配的正则表达式的字符/字符串
 	    while(matcher.find()) { 
 	    		String pStr = matcher.group();
@@ -118,7 +119,7 @@ public class MetaDataService  {
 	    		String pId = pStr.substring(1, len-1);
 	    		paramList.add(pId);
 	   } 
-	    String paramSql = matcher.replaceAll("?");
+	    String paramSql = matcher.replaceAll("?");   
 	    
 	    for(int i=0; i<paramList.size();i++) {
 	    		DefaultParameter dp = new DefaultParameter();
@@ -128,7 +129,7 @@ public class MetaDataService  {
 	    		String componetType = o.getString("componenttype");
 	    		dp.setParamId(paramList.get(i));
 	    		dp.setParamType(componetType);
-	   		if(componetType.equals("date")) {
+	   		if(componetType.equals("date")) {  //日期控件默认值设置为当日/当月/当年
 	   			DateParameter dateParam = new DateParameter();
 	   			Date currentTime = new Date();
 	   			String format = o.getString("formattype");
@@ -265,6 +266,50 @@ public class MetaDataService  {
 	public DataTable getTable(String tableID) {
 		DataTable table = dataTableRepository.findOne(tableID);	
 		return table;
+	}
+	
+	public ParameterValue getParameterValue(String paramId) {
+		Parameter param = parameterRepository.findOne(paramId);
+		String defineJSON = param.getDefineJSON();
+		JSONObject o = (JSONObject) JSON.parse(defineJSON);
+		String componetType = o.getString("componenttype");
+		JSONObject standbyDefine = o.getJSONObject("standbyDefine");
+		String valueSource = standbyDefine.getString("valueSource");
+		ParameterValue pv = new ParameterValue();
+		if(componetType.equals("list")) {  
+			List<ListParameter> listValues = new ArrayList<ListParameter>();
+   			if(valueSource.equals("static")) {
+   				JSONArray valueList = standbyDefine.getJSONArray("values");
+   				for(int i=0; i<valueList.size(); i++) {
+   					ListParameter lp = new ListParameter();
+   					JSONObject value = valueList.getJSONObject(i);
+   					lp.setKey(value.getString("key"));
+   					lp.setValue(value.getString("value"));
+   					listValues.add(lp);
+   				}
+   				pv.setStandByList(listValues);
+   			} else {
+   				String dataSourceId = standbyDefine.getString("dataSourceID");
+   		    		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
+   				JSONArray valueList = standbyDefine.getJSONArray("values");
+   				String sql = valueList.getJSONObject(0).getString("value");
+   				GridData gd = SQLExecutor.execute(ds, sql);
+   				int rows = gd.getRowsCount();
+   				for(int i=0; i<rows; i++) {
+   					ListParameter lp = new ListParameter();
+   					String key = gd.get(i, 0).getDisplayValue();
+   					String value = gd.get(i, 1).getDisplayValue();
+   					lp.setKey(key);
+   					lp.setValue(value);
+   					listValues.add(lp);
+   				}
+   				pv.setStandByList(listValues);
+   			}
+   		} else if(componetType.equals("Tree")) {
+
+   		} 
+		return pv;
+		
 	}
 	
 }

@@ -31,6 +31,5 @@ public class BizViewController {
 //    }
     public ParamGridData perviewBizView(String bizViewId) { 	
     		return metaDataService.getParamGridData(bizViewId);
-
    }
 }
