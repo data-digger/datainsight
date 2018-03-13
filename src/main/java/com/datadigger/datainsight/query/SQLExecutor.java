@@ -27,19 +27,24 @@ public class SQLExecutor {
 
 	}
 
+	public static GridData execute(DataSource ds, String sql, List<Object> paramList) {
+		return execute(ds, sql, Integer.MAX_VALUE, true , paramList);
+	}
+	
 	public static GridData execute(DataSource ds, String sql) {
-		return execute(ds, sql, Integer.MAX_VALUE, true);
+		return execute(ds, sql, Integer.MAX_VALUE, true , null);
 	}
 
 	public static GridData execute(DataSource ds, String sql, boolean format) {
-		return execute(ds, sql, Integer.MAX_VALUE, format);
+		return execute(ds, sql, Integer.MAX_VALUE, format, null);
 	}
 	
 	public static GridData execute(DataSource ds, String sql, int maxRows) {
-		return execute(ds, sql, maxRows, true);
+		return execute(ds, sql, maxRows, true,null);
 	}
 	
-	public static GridData execute(DataSource ds, String sql, int maxRows, boolean format) {
+	
+	public static GridData execute(DataSource ds, String sql, int maxRows, boolean format,List<Object> paramList) {
 		GridData result = new GridData();
 
 		Connection conn = null;
@@ -51,6 +56,20 @@ public class SQLExecutor {
 			conn = ConnectionPool.getInstance().getConnection(ds);
 			
 			prep = JdbcUtil.prepareStatement(conn,sql);
+			if(paramList != null) {
+				for(int i = 0; i < paramList.size(); i++) {
+					Object o = paramList.get(i);
+					if (o instanceof Integer) {
+						prep.setInt(i+1, ((Integer) o).intValue());
+					} else if (o instanceof Double ) {
+						prep.setDouble(i+1, ((Double) o).doubleValue());
+					} else if (o instanceof String ) {
+						prep.setString(i+1, (String)o);
+					} else if (o instanceof Date ) {
+						prep.setDate(i+1, (Date)o);
+					}
+				}
+			}
 			rs = prep.executeQuery();
 		
 			ResultSetMetaData meta = rs.getMetaData();

@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.bean.ParamGridData;
 import com.datadigger.datainsight.domain.BizView;
 import com.datadigger.datainsight.service.MetaDataService;
 
@@ -24,8 +25,12 @@ public class BizViewController {
     		return bizViewId;
     }
     @RequestMapping("/bizview/preview")
-    public GridData perviewBizView(String bizViewId) { 	
-    	return metaDataService.getGridData(bizViewId);
+//    public GridData perviewBizView(String bizViewId) { 	
+//    	return metaDataService.getGridData(bizViewId);
+//
+//    }
+    public ParamGridData perviewBizView(String bizViewId) { 	
+    		return metaDataService.getParamGridData(bizViewId);
 
-    }
+   }
 }
