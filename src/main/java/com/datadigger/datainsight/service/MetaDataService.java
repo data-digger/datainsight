@@ -1,9 +1,13 @@
 package com.datadigger.datainsight.service;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +16,11 @@ import org.springframework.stereotype.Service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.datadigger.datainsight.bean.DefaultParameter;
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.bean.DateParameter;
+import com.datadigger.datainsight.bean.ListParameter;
+import com.datadigger.datainsight.bean.ParamGridData;
 import com.datadigger.datainsight.domain.ReportData;
 import com.datadigger.datainsight.domain.BizView;
 import com.datadigger.datainsight.domain.Chart;
@@ -80,12 +88,75 @@ public class MetaDataService  {
 		log.debug("Create BizView -- "+ bizView.getName());
 		return bizView;
 	}
-
-    public GridData getGridData(String bizViewId){
-    	BizView bizView = bizViewRespository.findOne(bizViewId);
-    	String dataSourceId = bizView.getDataSourceId();
-    	DataSource ds = dastaSourceRespository.findOne(dataSourceId);
-    	return SQLExecutor.execute(ds, bizView.getDefineJSON());
+	public GridData getGridData(String bizViewId) {
+		BizView bizView = bizViewRespository.findOne(bizViewId);
+    		String dataSourceId = bizView.getDataSourceId();
+    		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
+    		return SQLExecutor.execute(ds, bizView.getDefineJSON());
+	}
+	
+    public ParamGridData getParamGridData(String bizViewId){
+	    	BizView bizView = bizViewRespository.findOne(bizViewId);
+	    	String dataSourceId = bizView.getDataSourceId();
+	    	DataSource ds = dastaSourceRespository.findOne(dataSourceId);
+	    	String defineJSON = bizView.getDefineJSON();
+	    	List<String> paramList = new ArrayList<String>();	   
+	    	List<Object> paramValue = new ArrayList<Object>();
+	    	ParamGridData pd = new ParamGridData();
+	    List<DefaultParameter> dpList = new ArrayList<DefaultParameter>();
+	    // 正则表达式规则
+	    String regEx = "\\^.*?\\^";
+	    // 编译正则表达式
+	    Pattern pattern = Pattern.compile(regEx);
+	    // 忽略大小写的写法
+	    // Pattern pat = Pattern.compile(regEx, Pattern.CASE_INSENSITIVE);
+	    Matcher matcher = pattern.matcher(defineJSON);
+	    // 查找字符串中匹配的正则表达式的字符/字符串
+	    while(matcher.find()) { 
+	    		String pStr = matcher.group();
+	    		int len = pStr.length();
+	    		String pId = pStr.substring(1, len-1);
+	    		paramList.add(pId);
+	   } 
+	    String paramSql = matcher.replaceAll("?");
+	    
+	    for(int i=0; i<paramList.size();i++) {
+	    		DefaultParameter dp = new DefaultParameter();
+	    		Parameter param = parameterRepository.findOne(paramList.get(i));
+	    		String paramDefine = param.getDefineJSON();
+	    		JSONObject o = (JSONObject) JSON.parse(paramDefine);
+	    		String componetType = o.getString("componenttype");
+	    		dp.setParamId(paramList.get(i));
+	    		dp.setParamType(componetType);
+	   		if(componetType.equals("date")) {
+	   			DateParameter dateParam = new DateParameter();
+	   			Date currentTime = new Date();
+	   			String format = o.getString("formattype");
+	   			SimpleDateFormat formatter = new SimpleDateFormat(format);
+	   			String dateString = formatter.format(currentTime);
+	   			dateParam.setDate(dateString);
+	   			dateParam.setFormat(format);
+	   			dp.setDefaultDate(dateParam);
+	   			paramValue.add(dateString);
+	   		} else if(componetType.equals("list")) {
+	   			JSONObject defaultDefine = o.getJSONObject("defalutDefine");
+	   			String dk = defaultDefine.getString("key");
+	   			String dv = defaultDefine.getString("value");
+	   			ListParameter lp = new ListParameter();
+	   			lp.setKey(dk);
+	   			lp.setValue(dv);
+	   			dp.setDefaultListValue(lp);
+	   			paramValue.add(dk);
+	   		} else if(componetType.equals("Tree")) {
+	   			
+	   		}
+	   		dpList.add(dp);
+	    }
+	      GridData data = SQLExecutor.execute(ds, paramSql, paramValue);
+	      pd.setGridData(data);
+	      pd.setDefaultParameters(dpList);
+	      return pd;
+	    	//return SQLExecutor.execute(ds, bizView.getDefineJSON());
     }
     
     public Chart createChart(Chart chart) {
@@ -195,4 +266,5 @@ public class MetaDataService  {
 		DataTable table = dataTableRepository.findOne(tableID);	
 		return table;
 	}
+	
 }
