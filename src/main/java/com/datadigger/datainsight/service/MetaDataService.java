@@ -312,4 +312,29 @@ public class MetaDataService  {
 		
 	}
 	
+	public GridData updateBizViewData(String JSONparam) {
+		JSONObject o = (JSONObject) JSON.parse(JSONparam);
+		String bizViewId = o.getString("bizViewId");
+		JSONObject paramSelected = o.getJSONObject("paramSelected");
+		BizView bizView = bizViewRespository.findOne(bizViewId);
+    		String dataSourceId = bizView.getDataSourceId();
+    		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
+    		String sqlJSON = bizView.getDefineJSON();
+    		List<Object> paramValues = new ArrayList<Object>();
+
+    	    String regEx = "\\^.*?\\^";
+    	    Matcher matcher = matchRegEx(sqlJSON,regEx);
+    	    
+    	    while(matcher.find()) { 
+    	    		String pStr = matcher.group();
+    	    		int len = pStr.length();
+    	    		String pId = pStr.substring(1, len-1);
+    	    		String pv = paramSelected.getString(pId);
+    	    		paramValues.add(pv);
+    	   } 
+    	    String paramSql = matcher.replaceAll("?"); 
+    	    return SQLExecutor.execute(ds, paramSql, paramValues);
+		
+	}
+	
 }
