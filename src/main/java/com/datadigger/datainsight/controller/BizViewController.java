@@ -1,5 +1,7 @@
 package com.datadigger.datainsight.controller;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,4 +34,8 @@ public class BizViewController {
     public ParamGridData perviewBizView(String bizViewId) { 	
     		return metaDataService.getParamGridData(bizViewId);
    }
+    @RequestMapping("/bizview/update")
+    public GridData updateBizView(String JSONParam) {
+    		return metaDataService.updateBizViewData(JSONParam);
+    }
 }
