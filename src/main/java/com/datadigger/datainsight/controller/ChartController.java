@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.bean.ParamGridData;
 import com.datadigger.datainsight.domain.Chart;
 import com.datadigger.datainsight.service.MetaDataService;
 
@@ -32,13 +33,13 @@ public class ChartController {
     }
     
     @RequestMapping("/chart/preview")
-    public GridData perviewChart(String chartId) { 	
+    public ParamGridData perviewChart(String chartId) { 	
     	return metaDataService.getChartData(chartId);
 
     }
     
     @RequestMapping("/chart/getdata")
-    public GridData getChartData(String chartId) { 	
+    public ParamGridData getChartData(String chartId) { 	
     	return metaDataService.getChartData(chartId);
 
     }

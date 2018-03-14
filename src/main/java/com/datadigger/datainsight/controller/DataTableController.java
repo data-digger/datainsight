@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.bean.ParamGridData;
 import com.datadigger.datainsight.domain.DataTable;
 import com.datadigger.datainsight.service.MetaDataService;
 
@@ -24,7 +25,7 @@ public class DataTableController {
     		return tableId;
     }
     @RequestMapping("/table/preview")
-    public GridData perviewDataTable(String tableId) { 	
+    public ParamGridData perviewDataTable(String tableId) { 	
     	return metaDataService.getTableData(tableId);
 
     }

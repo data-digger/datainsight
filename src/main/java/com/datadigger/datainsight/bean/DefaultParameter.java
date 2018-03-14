@@ -34,6 +34,20 @@ public class DefaultParameter implements Serializable {
 		this.defaultDate = defaultDate;
 	}
 	
-	
+	@Override  
+    public int hashCode() {    
+        return this.paramId.hashCode();
+    }  
+  
+    @Override  
+    public boolean equals(Object obj) {  
+        if (obj instanceof DefaultParameter) {  
+        		DefaultParameter p = (DefaultParameter) obj;  
+            return this.paramId.equals(p.paramId);  
+        } else {  
+            return false;  
+        }  
+    }  
+
 	
 }

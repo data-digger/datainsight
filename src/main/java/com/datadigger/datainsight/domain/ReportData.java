@@ -2,10 +2,14 @@ package com.datadigger.datainsight.domain;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import com.datadigger.datainsight.bean.DefaultParameter;
 
 
 public class ReportData extends Report{
 	private static final long serialVersionUID = 4822506708339397689L;
+	private Set<DefaultParameter> parameterSet;
 	private List<ChartData> chartData;
 	private List<TableData> tableData;
 	public ReportData(Report r) {
@@ -15,6 +19,19 @@ public class ReportData extends Report{
 		this.setDefineJSON(r.getDefineJSON());
 		this.setDesc(r.getDesc());
 	}
+
+	public Set<DefaultParameter> getParameterSet() {
+		return parameterSet;
+	}
+
+
+
+	public void setParameterSet(Set<DefaultParameter> parameterSet) {
+		this.parameterSet = parameterSet;
+	}
+
+
+
 	public List<ChartData> getChartData() {
 		return chartData;
 	}
