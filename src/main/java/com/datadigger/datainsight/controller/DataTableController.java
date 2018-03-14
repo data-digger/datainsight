@@ -25,8 +25,8 @@ public class DataTableController {
     		return tableId;
     }
     @RequestMapping("/table/preview")
-    public ParamGridData perviewDataTable(String tableId) { 	
-    	return metaDataService.getTableData(tableId);
+    public ParamGridData perviewDataTable(String tableId,String JSONParam) { 	
+    	return metaDataService.getTableData(tableId,JSONParam);
 
     }
 }

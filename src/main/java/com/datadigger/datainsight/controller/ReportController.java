@@ -35,4 +35,10 @@ public class ReportController {
     	 return metaDataService.getReportData(reportID);
     	 
     }
+    @RequestMapping("/report/update")
+    public ReportData updateReportData(String reportID,String JSONparam) {
+    	   
+    	 return metaDataService.updateReportData(reportID, JSONparam);
+    	 
+    }
 }
