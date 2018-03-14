@@ -2,10 +2,11 @@ package com.datadigger.datainsight.domain;
 
 
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.bean.ParamGridData;
 
 public class TableData extends DataTable{
 
-	private GridData gridData;
+	private ParamGridData Data;
     private String portletID;
 	public TableData(DataTable table){
 		this.setId(table.getId());
@@ -14,12 +15,15 @@ public class TableData extends DataTable{
 		this.setBizViewId(table.getBizViewId());
 		this.setDesc(table.getDesc());
 	}
-	public GridData getGridData() {
-		return gridData;
+
+	public ParamGridData getData() {
+		return Data;
 	}
-	public void setGridData(GridData gridData) {
-		this.gridData = gridData;
+
+	public void setData(ParamGridData data) {
+		Data = data;
 	}
+
 	public String getPortletID() {
 		return portletID;
 	}

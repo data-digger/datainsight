@@ -3,7 +3,9 @@ package com.datadigger.datainsight.service;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -94,12 +96,15 @@ public class MetaDataService  {
     		return SQLExecutor.execute(ds, bizView.getDefineJSON());
 	}
 	
-	public Matcher matchRegEx (String sentence, String regEx) {
+	public Matcher matchRegEx (String sentence) {
+		String regEx = "\\^.*?\\^";
 		Pattern pattern = Pattern.compile(regEx);
 		Matcher matcher = pattern.matcher(sentence);
 		return matcher;
 	}
-	
+	/*
+	 * 获取带参数对象的查询器数据
+	 */
     public ParamGridData getParamGridData(String bizViewId){
 	    	BizView bizView = bizViewRespository.findOne(bizViewId);
 	    	String dataSourceId = bizView.getDataSourceId();
@@ -109,9 +114,8 @@ public class MetaDataService  {
 	    	List<Object> paramValue = new ArrayList<Object>();
 	    	ParamGridData pd = new ParamGridData();
 	    List<DefaultParameter> dpList = new ArrayList<DefaultParameter>();
-	    // 正则表达式规则
-	    String regEx = "\\^.*?\\^";
-	    Matcher matcher = matchRegEx(defineJSON,regEx);
+
+	    Matcher matcher = matchRegEx(defineJSON);
 	    // 查找字符串中匹配的正则表达式的字符/字符串
 	    while(matcher.find()) { 
 	    		String pStr = matcher.group();
@@ -196,36 +200,68 @@ public class MetaDataService  {
 	    	return r;
 	}
 
-    public GridData getChartData(String chartID) {
+    public ParamGridData getChartData(String chartID) {
     	       Chart chart = chartRespository.findOne(chartID);
-    	       GridData gd = getGridData(chart.getBizViewId());
+    	       ParamGridData gd = getParamGridData(chart.getBizViewId());
     	       return gd;
     }
     
-    public GridData getTableData(String tableID) {
+    public ParamGridData getTableData(String tableID) {
 	       DataTable table = dataTableRepository.findOne(tableID);
-	       GridData gd = getGridData(table.getBizViewId());
+	       ParamGridData gd = getParamGridData(table.getBizViewId());
 	       return gd;
     }
     
     public ChartData getReptChart(String chartID,String portletID) {
     		 Chart chart = getChart(chartID);
-		 GridData gd  =getChartData(chartID);
+    		 ParamGridData gd  =getChartData(chartID);
 		 ChartData cd =  new ChartData(chart);
 		 cd.setPortletID(portletID);
-		 cd.setGridData(gd);
+		 cd.setData(gd);
 	     return cd;
     }
     public TableData getReptTable(String tableID,String portletID) {
     	 	 DataTable dt = getTable(tableID);
-		 GridData gd = getTableData(tableID);
+    	 	 ParamGridData gd = getTableData(tableID);
 		 TableData td = new TableData(dt);
-		 td.setGridData(gd);
+		 td.setData(gd);
 		 td.setPortletID(portletID);
 	     return td;
     }
 
-	public ReportData getReportData(String reportID) {
+//	public ReportData getReportData(String reportID) {
+//		 Report r = getReport(reportID);
+//		 String defineJSON = r.getDefineJSON();
+//		 ReportData rd = new ReportData(r);
+//		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
+//		 JSONObject content = o.getJSONObject("content");
+//		 JSONArray portlets = content.getJSONArray("portlets");
+//		 List<ChartData> chartData = new ArrayList<ChartData>();
+//		 List<TableData> tableData = new ArrayList<TableData>();
+//		 for (int i = 0; i < portlets.size(); i++) {
+//			 JSONObject portlet = portlets.getJSONObject(i);
+//			 String portletID = portlet.getString("portletID");
+//			 JSONArray tabs = portlet.getJSONArray("tabs");
+//			 for(int j = 0; j < tabs.size(); j++) {
+//				 JSONObject jobj = tabs.getJSONObject(j);
+//				 String objtype = jobj.getString("objtype");
+//				 String objid = jobj.getString("objid");
+//				 if(objtype.equals("Table")) {
+//					 TableData td = getReptTable(objid,portletID);
+//					 tableData.add(td);
+//				 } else {
+//					 ChartData cd =  getReptChart(objid,portletID);
+//					 chartData.add(cd);
+//				 }
+//				 
+//			 }
+//			 
+//		 }
+//		 rd.setChartData(chartData);
+//		 rd.setTableData(tableData);
+//		 return rd;
+//	}
+    public ReportData getReportData(String reportID) {
 		 Report r = getReport(reportID);
 		 String defineJSON = r.getDefineJSON();
 		 ReportData rd = new ReportData(r);
@@ -234,30 +270,36 @@ public class MetaDataService  {
 		 JSONArray portlets = content.getJSONArray("portlets");
 		 List<ChartData> chartData = new ArrayList<ChartData>();
 		 List<TableData> tableData = new ArrayList<TableData>();
+		 Set<DefaultParameter> paramSet = new HashSet<DefaultParameter>();  
 		 for (int i = 0; i < portlets.size(); i++) {
 			 JSONObject portlet = portlets.getJSONObject(i);
 			 String portletID = portlet.getString("portletID");
 			 JSONArray tabs = portlet.getJSONArray("tabs");
 			 for(int j = 0; j < tabs.size(); j++) {
+				 List<DefaultParameter> dpList = new ArrayList<DefaultParameter>();
 				 JSONObject jobj = tabs.getJSONObject(j);
 				 String objtype = jobj.getString("objtype");
 				 String objid = jobj.getString("objid");
 				 if(objtype.equals("Table")) {
 					 TableData td = getReptTable(objid,portletID);
 					 tableData.add(td);
+					 dpList = td.getData().getDefaultParameters();
 				 } else {
 					 ChartData cd =  getReptChart(objid,portletID);
 					 chartData.add(cd);
+					 dpList = cd.getData().getDefaultParameters();
 				 }
-				 
+				 for(int k=0; k<dpList.size(); k++) {
+					 paramSet.add(dpList.get(k));
+				 }
 			 }
 			 
 		 }
+		 rd.setParameterSet(paramSet);
 		 rd.setChartData(chartData);
 		 rd.setTableData(tableData);
 		 return rd;
 	}
-
 	public Chart getChart(String chartID) {
 		Chart chart = chartRespository.findOne(chartID);
 		
@@ -267,7 +309,9 @@ public class MetaDataService  {
 		DataTable table = dataTableRepository.findOne(tableID);	
 		return table;
 	}
-	
+	/*
+	 * 获取参数候选值
+	 */
 	public ParameterValue getParameterValue(String paramId) {
 		Parameter param = parameterRepository.findOne(paramId);
 		String defineJSON = param.getDefineJSON();
@@ -311,7 +355,9 @@ public class MetaDataService  {
 		return pv;
 		
 	}
-	
+	/*
+	 * 查询器获取参数更新后的数据
+	 */
 	public GridData updateBizViewData(String JSONparam) {
 		JSONObject o = (JSONObject) JSON.parse(JSONparam);
 		String bizViewId = o.getString("bizViewId");
@@ -322,8 +368,7 @@ public class MetaDataService  {
     		String sqlJSON = bizView.getDefineJSON();
     		List<Object> paramValues = new ArrayList<Object>();
 
-    	    String regEx = "\\^.*?\\^";
-    	    Matcher matcher = matchRegEx(sqlJSON,regEx);
+    	    Matcher matcher = matchRegEx(sqlJSON);
     	    
     	    while(matcher.find()) { 
     	    		String pStr = matcher.group();
@@ -337,4 +382,53 @@ public class MetaDataService  {
 		
 	}
 	
+	/*
+	 * 封装默认参数对象
+	 */
+	public DefaultParameter getDefaultParameter(String parameterId) {
+		DefaultParameter dp = new DefaultParameter();
+		Parameter param = parameterRepository.findOne(parameterId);
+		String paramDefine = param.getDefineJSON();
+		JSONObject o = (JSONObject) JSON.parse(paramDefine);
+		String componetType = o.getString("componenttype");
+		dp.setParamId(parameterId);
+		dp.setParamType(componetType);
+		if(componetType.equals("date")) {  //日期控件默认值设置为当日/当月/当年
+			DateParameter dateParam = new DateParameter();
+			Date currentTime = new Date();
+			String format = o.getString("formattype");
+			SimpleDateFormat formatter = new SimpleDateFormat(format);
+			String dateString = formatter.format(currentTime);
+			dateParam.setDate(dateString);
+			dateParam.setFormat(format);
+			dp.setDefaultDate(dateParam);
+		} else if(componetType.equals("list")) {
+			JSONObject defaultDefine = o.getJSONObject("defalutDefine");
+			String dk = defaultDefine.getString("key");
+			String dv = defaultDefine.getString("value");
+			ListParameter lp = new ListParameter();
+			lp.setKey(dk);
+			lp.setValue(dv);
+			dp.setDefaultListValue(lp);
+		} else if(componetType.equals("Tree")) {
+			
+		}
+		return dp;
+	}
+	/*
+	 * 解析获取查询器的参数对象
+	 */
+	public List<DefaultParameter> getParamets(String bizViewId){
+		BizView bizView = bizViewRespository.findOne(bizViewId);
+    		String sqlJSON = bizView.getDefineJSON();
+    		List<DefaultParameter> dpList = new ArrayList<DefaultParameter>();
+    	    Matcher matcher = matchRegEx(sqlJSON);
+    	    while(matcher.find()) { 
+    	    		String pStr = matcher.group();
+    	    		int len = pStr.length();
+    	    		String pId = pStr.substring(1, len-1);
+    	    		dpList.add(getDefaultParameter(pId));
+    	   } 
+    	    return dpList;
+	}
 }
