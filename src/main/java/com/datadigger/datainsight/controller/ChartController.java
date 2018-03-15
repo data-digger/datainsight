@@ -33,14 +33,14 @@ public class ChartController {
     }
     
     @RequestMapping("/chart/preview")
-    public ParamGridData perviewChart(String chartId) { 	
-    	return metaDataService.getChartData(chartId);
+    public ParamGridData perviewChart(String chartId,String JSONParam) { 	
+    	return metaDataService.getChartData(chartId,JSONParam);
 
     }
     
     @RequestMapping("/chart/getdata")
-    public ParamGridData getChartData(String chartId) { 	
-    	return metaDataService.getChartData(chartId);
+    public ParamGridData getChartData(String chartId,String JSONParam) { 	
+    	return metaDataService.getChartData(chartId,JSONParam);
 
     }
 }

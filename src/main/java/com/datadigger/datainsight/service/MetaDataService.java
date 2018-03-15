@@ -37,6 +37,7 @@ import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
 import com.datadigger.datainsight.repository.DataSourceRepository;
 import com.datadigger.datainsight.repository.ReportRepository;
+import com.datadigger.datainsight.util.StringUtil;
 import com.datadigger.datainsight.repository.DataTableRepository;
 import com.datadigger.datainsight.repository.ParameterRepository;
 @Service
@@ -200,29 +201,43 @@ public class MetaDataService  {
 	    	return r;
 	}
 
-    public ParamGridData getChartData(String chartID) {
+    public ParamGridData getChartData(String chartID, String JSONParam) {
     	       Chart chart = chartRespository.findOne(chartID);
-    	       ParamGridData gd = getParamGridData(chart.getBizViewId());
-    	       return gd;
+    	       String bizViewId = chart.getBizViewId();
+    	       ParamGridData pd = new ParamGridData();
+    	       if(StringUtil.isNullOrEmpty(JSONParam)) {
+    	    	   		pd = getParamGridData(bizViewId);		 
+    			} else {
+    				GridData gd = updateBizViewData(bizViewId,JSONParam);
+    				pd.setGridData(gd);
+    			}
+    	       return pd;
     }
     
-    public ParamGridData getTableData(String tableID) {
+    public ParamGridData getTableData(String tableID,String JSONParam) {
 	       DataTable table = dataTableRepository.findOne(tableID);
-	       ParamGridData gd = getParamGridData(table.getBizViewId());
-	       return gd;
+	       String bizViewId = table.getBizViewId();
+	       ParamGridData pd = new ParamGridData();
+	       if(StringUtil.isNullOrEmpty(JSONParam)) {
+	    	   		pd = getParamGridData(bizViewId);		 
+			} else {
+				GridData gd = updateBizViewData(bizViewId,JSONParam);
+				pd.setGridData(gd);
+			}
+	       return pd;
     }
     
-    public ChartData getReptChart(String chartID,String portletID) {
+    public ChartData getReptChart(String chartID,String portletID,String JSONparam) {
     		 Chart chart = getChart(chartID);
-    		 ParamGridData gd  =getChartData(chartID);
 		 ChartData cd =  new ChartData(chart);
 		 cd.setPortletID(portletID);
-		 cd.setData(gd);
+		 ParamGridData pd  = getChartData(chartID,JSONparam);
+		 cd.setData(pd);
 	     return cd;
     }
-    public TableData getReptTable(String tableID,String portletID) {
+    public TableData getReptTable(String tableID,String portletID,String JSONparam) {
     	 	 DataTable dt = getTable(tableID);
-    	 	 ParamGridData gd = getTableData(tableID);
+    	 	 ParamGridData gd = getTableData(tableID,JSONparam);
 		 TableData td = new TableData(dt);
 		 td.setData(gd);
 		 td.setPortletID(portletID);
@@ -281,21 +296,52 @@ public class MetaDataService  {
 				 String objtype = jobj.getString("objtype");
 				 String objid = jobj.getString("objid");
 				 if(objtype.equals("Table")) {
-					 TableData td = getReptTable(objid,portletID);
+					 TableData td = getReptTable(objid,portletID,null);
 					 tableData.add(td);
-					 dpList = td.getData().getDefaultParameters();
+					 dpList = td.getData().getDefaultParameters();	//获取Table的参数对象
 				 } else {
-					 ChartData cd =  getReptChart(objid,portletID);
+					 ChartData cd =  getReptChart(objid,portletID,null);
 					 chartData.add(cd);
-					 dpList = cd.getData().getDefaultParameters();
+					 dpList = cd.getData().getDefaultParameters();	//获取Chart的参数对象
 				 }
 				 for(int k=0; k<dpList.size(); k++) {
-					 paramSet.add(dpList.get(k));
+					 paramSet.add(dpList.get(k));	//报表参数对象合并去重
 				 }
 			 }
 			 
 		 }
 		 rd.setParameterSet(paramSet);
+		 rd.setChartData(chartData);
+		 rd.setTableData(tableData);
+		 return rd;
+	}
+    
+    public ReportData updateReportData(String reportID,String JSONparam) {
+		 Report r = getReport(reportID);
+		 String reportDefine = r.getDefineJSON();
+		 ReportData rd = new ReportData(r);
+		 JSONObject o = (JSONObject) JSON.parse(reportDefine);
+		 JSONObject content = o.getJSONObject("content");
+		 JSONArray portlets = content.getJSONArray("portlets");
+		 List<ChartData> chartData = new ArrayList<ChartData>();
+		 List<TableData> tableData = new ArrayList<TableData>();
+		 for (int i = 0; i < portlets.size(); i++) {
+			 JSONObject portlet = portlets.getJSONObject(i);
+			 String portletID = portlet.getString("portletID");
+			 JSONArray tabs = portlet.getJSONArray("tabs");
+			 for(int j = 0; j < tabs.size(); j++) {
+				 JSONObject jobj = tabs.getJSONObject(j);
+				 String objtype = jobj.getString("objtype");
+				 String objid = jobj.getString("objid");
+				 if(objtype.equals("Table")) {
+					 TableData td = getReptTable(objid,portletID,JSONparam);
+					 tableData.add(td);
+				 } else {
+					 ChartData cd =  getReptChart(objid,portletID,JSONparam);
+					 chartData.add(cd);
+				 }
+			 }			 
+		 }
 		 rd.setChartData(chartData);
 		 rd.setTableData(tableData);
 		 return rd;
@@ -358,10 +404,8 @@ public class MetaDataService  {
 	/*
 	 * 查询器获取参数更新后的数据
 	 */
-	public GridData updateBizViewData(String JSONparam) {
-		JSONObject o = (JSONObject) JSON.parse(JSONparam);
-		String bizViewId = o.getString("bizViewId");
-		JSONObject paramSelected = o.getJSONObject("paramSelected");
+	public GridData updateBizViewData(String bizViewId,String JSONparam) {
+		JSONObject paramSelected = (JSONObject) JSON.parse(JSONparam);
 		BizView bizView = bizViewRespository.findOne(bizViewId);
     		String dataSourceId = bizView.getDataSourceId();
     		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
