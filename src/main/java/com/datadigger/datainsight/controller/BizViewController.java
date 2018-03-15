@@ -35,7 +35,7 @@ public class BizViewController {
     		return metaDataService.getParamGridData(bizViewId);
    }
     @RequestMapping("/bizview/update")
-    public GridData updateBizView(String bizViewId,String JSONParam) {
+    public ParamGridData updateBizView(String bizViewId,String JSONParam) {
     		return metaDataService.updateBizViewData(bizViewId,JSONParam);
     }
 }

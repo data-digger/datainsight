@@ -208,8 +208,7 @@ public class MetaDataService  {
     	       if(StringUtil.isNullOrEmpty(JSONParam)) {
     	    	   		pd = getParamGridData(bizViewId);		 
     			} else {
-    				GridData gd = updateBizViewData(bizViewId,JSONParam);
-    				pd.setGridData(gd);
+    				pd = updateBizViewData(bizViewId,JSONParam);
     			}
     	       return pd;
     }
@@ -221,8 +220,7 @@ public class MetaDataService  {
 	       if(StringUtil.isNullOrEmpty(JSONParam)) {
 	    	   		pd = getParamGridData(bizViewId);		 
 			} else {
-				GridData gd = updateBizViewData(bizViewId,JSONParam);
-				pd.setGridData(gd);
+				pd = updateBizViewData(bizViewId,JSONParam);
 			}
 	       return pd;
     }
@@ -404,13 +402,14 @@ public class MetaDataService  {
 	/*
 	 * 查询器获取参数更新后的数据
 	 */
-	public GridData updateBizViewData(String bizViewId,String JSONparam) {
+	public ParamGridData updateBizViewData(String bizViewId,String JSONparam) {
 		JSONObject paramSelected = (JSONObject) JSON.parse(JSONparam);
 		BizView bizView = bizViewRespository.findOne(bizViewId);
     		String dataSourceId = bizView.getDataSourceId();
     		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
     		String sqlJSON = bizView.getDefineJSON();
     		List<Object> paramValues = new ArrayList<Object>();
+    		ParamGridData pd = new ParamGridData();
 
     	    Matcher matcher = matchRegEx(sqlJSON);
     	    
@@ -422,8 +421,9 @@ public class MetaDataService  {
     	    		paramValues.add(pv);
     	   } 
     	    String paramSql = matcher.replaceAll("?"); 
-    	    return SQLExecutor.execute(ds, paramSql, paramValues);
-		
+    	    GridData gd = SQLExecutor.execute(ds, paramSql, paramValues);
+    	    pd.setGridData(gd);
+		return pd;
 	}
 	
 	/*
