@@ -31,7 +31,7 @@ public class ReportControllerTests {
     }
     @Test
     public void getReportData() throws Exception {
-    String reportID = "RP.SakilaReport";
+    String reportID = "RP.Sakila";
     mvc.perform(MockMvcRequestBuilders.get("/report/getdata").accept(MediaType.APPLICATION_JSON).param("reportID",reportID))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andDo(MockMvcResultHandlers.print())
