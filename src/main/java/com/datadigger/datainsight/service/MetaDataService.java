@@ -1,5 +1,11 @@
 package com.datadigger.datainsight.service;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,6 +24,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.datadigger.datainsight.bean.DefaultParameter;
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.bean.JDBCTable;
 import com.datadigger.datainsight.bean.DateParameter;
 import com.datadigger.datainsight.bean.ListParameter;
 import com.datadigger.datainsight.bean.ParameterValue;
@@ -37,7 +44,10 @@ import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
 import com.datadigger.datainsight.repository.DataSourceRepository;
 import com.datadigger.datainsight.repository.ReportRepository;
+import com.datadigger.datainsight.util.ConnectionPool;
 import com.datadigger.datainsight.util.StringUtil;
+
+
 import com.datadigger.datainsight.repository.DataTableRepository;
 import com.datadigger.datainsight.repository.ParameterRepository;
 @Service
@@ -474,5 +484,49 @@ public class MetaDataService  {
     	    		dpList.add(getDefaultParameter(pId));
     	   } 
     	    return dpList;
+	}
+	
+
+	public List<String> getTables(String dsId) {
+		DataSource ds = dastaSourceRespository.findOne(dsId);
+		Connection conn = null;
+		PreparedStatement prep = null;
+		String dbType = ds.getDriverType();
+		String charset = ds.getDbCharset();
+	    List<String> schemas = new ArrayList<String>();
+	    List<String> result = new ArrayList<String>();
+		try {
+			conn = ConnectionPool.getInstance().getConnection(ds);
+			DatabaseMetaData meta = conn.getMetaData();
+			ResultSet schemasRS = meta.getSchemas();
+			while (schemasRS.next()) {
+				schemas.add(schemasRS.getString("TABLE_SCHEM"));
+			}
+			String[] types = new String[] {"TABLE","VIEW", "MATERIALIZED QUERY TABLE", "SYNONYM", "ALIAS"};
+			ResultSet rs = meta.getTables(conn.getCatalog(), schemas.get(0), "%", types);
+			ResultSetMetaData rsMeta = rs.getMetaData();
+			boolean hasRemarks = false;
+			
+			for (int i = 1; i <= rsMeta.getColumnCount(); i++)
+				if (rsMeta.getColumnName(i).equalsIgnoreCase("REMARKS"))
+					hasRemarks = true;
+			
+			while (rs.next()) {
+				String type = rs.getString("TABLE_TYPE");
+				
+				if (type != null && type.trim().toUpperCase().equals("TABLE")){
+					result.add(rs.getString("TABLE_NAME"));
+				}
+				
+			}
+			rs.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return result;
 	}
 }

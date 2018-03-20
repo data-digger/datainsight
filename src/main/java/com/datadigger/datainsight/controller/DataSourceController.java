@@ -1,5 +1,7 @@
 package com.datadigger.datainsight.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,5 +28,10 @@ public class DataSourceController {
     	    System.out.println("DataSource is " + dataSource.getName());
     		String dsId = metaDataService.createDataSource(dataSource).getId();
     		return dsId;
+    }
+    
+    @RequestMapping("/datasource/gettables")
+    public List<String> getTables(String dsId) {
+    		return metaDataService.getTables(dsId);
     }
 }
