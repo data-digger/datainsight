@@ -18,10 +18,10 @@ public class ParameterController {
     	return metaDataService.listAllParameter();
     }
 
-    @RequestMapping("/parameter/new")
-    public String createParameter(Parameter parameter) {
+    @RequestMapping("/parameter/save")
+    public String saveParameter(Parameter parameter) {
     	    System.out.println("Parameter is " + parameter.getName());
-    		String parameterId = metaDataService.createParameter(parameter).getId();
+    		String parameterId = metaDataService.saveParameter(parameter).getId();
     		return parameterId;
     }
     @RequestMapping("/parameter/getValue")

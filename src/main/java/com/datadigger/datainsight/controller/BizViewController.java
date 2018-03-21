@@ -20,10 +20,10 @@ public class BizViewController {
     	return metaDataService.listAllBizView();
     }
 
-    @RequestMapping("/bizview/new")
-    public String createBizView(BizView bizView) {
+    @RequestMapping("/bizview/save")
+    public String saveBizView(BizView bizView) {
     	    System.out.println("BizView is " + bizView.getName());
-    		String bizViewId = metaDataService.createBizView(bizView).getId();
+    		String bizViewId = metaDataService.saveBizView(bizView).getId();
     		return bizViewId;
     }
     @RequestMapping("/bizview/preview")

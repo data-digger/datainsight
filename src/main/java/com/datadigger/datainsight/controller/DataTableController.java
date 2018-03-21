@@ -18,10 +18,10 @@ public class DataTableController {
     	return metaDataService.listAllDataTable();
     }
 
-    @RequestMapping("/table/new")
-    public String createDataTable(DataTable dataTable) {
+    @RequestMapping("/table/save")
+    public String saveDataTable(DataTable dataTable) {
     	    System.out.println("Table is " + dataTable.getName());
-    		String tableId = metaDataService.createDataTable(dataTable).getId();
+    		String tableId = metaDataService.saveDataTable(dataTable).getId();
     		return tableId;
     }
     @RequestMapping("/table/preview")

@@ -24,10 +24,10 @@ public class DataSourceController {
     public String index() {
         return "Hello World";
     }
-    @RequestMapping("/datasource/new")
-    public String createDataSource(DataSource dataSource) {
+    @RequestMapping("/datasource/save")
+    public String saveDataSource(DataSource dataSource) {
     	    System.out.println("DataSource is " + dataSource.getName());
-    		String dsId = metaDataService.createDataSource(dataSource).getId();
+    		String dsId = metaDataService.saveDataSource(dataSource).getId();
     		return dsId;
     }
     
