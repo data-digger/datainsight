@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.datadigger.datainsight.bean.TreeNode;
 import com.datadigger.datainsight.domain.DataSource;
 import com.datadigger.datainsight.service.MetaDataService;
 
@@ -31,7 +32,7 @@ public class DataSourceController {
     }
     
     @RequestMapping("/datasource/gettables")
-    public List<String> getTables(String dsId) {
+    public List<TreeNode> getTables(String dsId) {
     		return metaDataService.getTables(dsId);
     }
 }

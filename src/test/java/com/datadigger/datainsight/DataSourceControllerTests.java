@@ -29,13 +29,13 @@ public class DataSourceControllerTests {
     public void setUp() throws Exception {
     	 mvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }
-//    @Test
-//    public void getAllDataSources() throws Exception {
-//    mvc.perform(MockMvcRequestBuilders.get("/datasource/list").accept(MediaType.APPLICATION_JSON))
-//                .andExpect(MockMvcResultMatchers.status().isOk())
-//                .andDo(MockMvcResultHandlers.print())
-//                .andReturn();
-//    }
+    @Test
+    public void getAllDataSources() throws Exception {
+    mvc.perform(MockMvcRequestBuilders.get("/datasource/list").accept(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+    }
    
     @Test
     public void getTables() throws Exception {
@@ -63,12 +63,12 @@ public class DataSourceControllerTests {
 //                .andReturn();
 //    }
 //    
-    @Test
-    public void getHello() throws Exception {
-    mvc.perform(MockMvcRequestBuilders.get("/hello").accept(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-    }
+//    @Test
+//    public void getHello() throws Exception {
+//    mvc.perform(MockMvcRequestBuilders.get("/hello").accept(MediaType.APPLICATION_JSON))
+//                .andExpect(MockMvcResultMatchers.status().isOk())
+//                .andDo(MockMvcResultHandlers.print())
+//                .andReturn();
+//    }
 }
 
