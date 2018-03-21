@@ -88,14 +88,14 @@ public class MetaDataService  {
 		return parameterRepository.findAll();
 	}
 
-	public DataSource createDataSource(DataSource dataSource) {
+	public DataSource saveDataSource(DataSource dataSource) {
 		dataSource.setId(DomainType.DS.getDomainIDPrefix() + dataSource.getName());
 		dastaSourceRespository.save(dataSource);
         log.debug("Create DataSource -- "+ dataSource.getName());
 		return dataSource;
 	}
 	
-	public BizView createBizView(BizView bizView) {
+	public BizView saveBizView(BizView bizView) {
 		bizView.setId(DomainType.BZ.getDomainIDPrefix() + bizView.getName());
 		bizViewRespository.save(bizView);
 		log.debug("Create BizView -- "+ bizView.getName());
@@ -176,28 +176,28 @@ public class MetaDataService  {
 	    	//return SQLExecutor.execute(ds, bizView.getDefineJSON());
     }
     
-    public Chart createChart(Chart chart) {
+    public Chart saveChart(Chart chart) {
 		chart.setId(DomainType.CR.getDomainIDPrefix() + chart.getName());
 		chartRespository.save(chart);
 		log.debug("Create Chart -- "+ chart.getName());
 		return chart;
 	}
     
-    public DataTable createDataTable(DataTable dataTable) {
+    public DataTable saveDataTable(DataTable dataTable) {
     	dataTable.setId(DomainType.DT.getDomainIDPrefix() + dataTable.getName());
     	dataTableRepository.save(dataTable);
 		log.debug("Create dataTable -- "+ dataTable.getName());
 		return dataTable;
 	}
     
-    public Report createReport(Report report) {
+    public Report saveReport(Report report) {
     	report.setId(DomainType.RP.getDomainIDPrefix() + report.getName());
     	reportRespository.save(report);
 		log.debug("Create report -- "+ report.getName());
 		return report;
 	}
     
-    public Parameter createParameter(Parameter parameter) {
+    public Parameter saveParameter(Parameter parameter) {
     	parameter.setId(DomainType.PA.getDomainIDPrefix() + parameter.getName());
     	parameterRepository.save(parameter);
 		log.debug("Create parameter -- "+ parameter.getName());
