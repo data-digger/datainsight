@@ -7,7 +7,9 @@ public class TreeNode implements Serializable {
 
 	private static final long serialVersionUID = -3512186092470748597L;
 
-	private List<TreeNode> children;
+	private List<TreeNode> children = null;
+	
+	private String title;
 	
 	private String key;
 	
@@ -35,6 +37,14 @@ public class TreeNode implements Serializable {
 
 	public void setValue(String value) {
 		this.value = value;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
 	}
 	
 	
