@@ -29,14 +29,21 @@ public class DataSourceControllerTests {
     public void setUp() throws Exception {
     	 mvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }
+//    @Test
+//    public void getAllDataSources() throws Exception {
+//    mvc.perform(MockMvcRequestBuilders.get("/datasource/list").accept(MediaType.APPLICATION_JSON))
+//                .andExpect(MockMvcResultMatchers.status().isOk())
+//                .andDo(MockMvcResultHandlers.print())
+//                .andReturn();
+//    }
+   
     @Test
-    public void getAllDataSources() throws Exception {
-    mvc.perform(MockMvcRequestBuilders.get("/datasource/list").accept(MediaType.APPLICATION_JSON))
+    public void getTables() throws Exception {
+    mvc.perform(MockMvcRequestBuilders.get("/datasource/gettables").accept(MediaType.APPLICATION_JSON).param("dsId","DS.Sakila"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
     }
-   
 //    @Test
 //    public void createChart() throws Exception {
 //    Chart chart = new Chart();

@@ -28,6 +28,7 @@ import com.datadigger.datainsight.bean.JDBCTable;
 import com.datadigger.datainsight.bean.DateParameter;
 import com.datadigger.datainsight.bean.ListParameter;
 import com.datadigger.datainsight.bean.ParameterValue;
+import com.datadigger.datainsight.bean.TreeNode;
 import com.datadigger.datainsight.bean.ParamGridData;
 import com.datadigger.datainsight.domain.ReportData;
 import com.datadigger.datainsight.domain.BizView;
@@ -487,14 +488,26 @@ public class MetaDataService  {
 	}
 	
 
-	public List<String> getTables(String dsId) {
+	public List<TreeNode> getFields(Connection conn, String schema, String tableName) throws SQLException{
+		List<TreeNode> fieldList = new ArrayList<TreeNode>(); 
+		ResultSet rs = conn.getMetaData().getColumns(conn.getCatalog(), schema, tableName, "%");
+		while ( rs.next()){
+			TreeNode treeNode = new TreeNode();
+			treeNode.setTitle(rs.getString("COLUMN_NAME"));
+			fieldList.add(treeNode);
+			
+		}
+		return fieldList;
+	}
+	public List<TreeNode> getTables(String dsId) {
 		DataSource ds = dastaSourceRespository.findOne(dsId);
 		Connection conn = null;
 		PreparedStatement prep = null;
 		String dbType = ds.getDriverType();
 		String charset = ds.getDbCharset();
 	    List<String> schemas = new ArrayList<String>();
-	    List<String> result = new ArrayList<String>();
+	    String schema = null;
+	    List<TreeNode> result = new ArrayList<TreeNode>();
 		try {
 			conn = ConnectionPool.getInstance().getConnection(ds);
 			DatabaseMetaData meta = conn.getMetaData();
@@ -502,8 +515,13 @@ public class MetaDataService  {
 			while (schemasRS.next()) {
 				schemas.add(schemasRS.getString("TABLE_SCHEM"));
 			}
+			if(schemas.isEmpty()){
+				schema = null;
+			}else{
+				schema = schemas.get(0);
+			}
 			String[] types = new String[] {"TABLE","VIEW", "MATERIALIZED QUERY TABLE", "SYNONYM", "ALIAS"};
-			ResultSet rs = meta.getTables(conn.getCatalog(), schemas.get(0), "%", types);
+			ResultSet rs = meta.getTables(conn.getCatalog(), schema, "%", types);
 			ResultSetMetaData rsMeta = rs.getMetaData();
 			boolean hasRemarks = false;
 			
@@ -515,7 +533,11 @@ public class MetaDataService  {
 				String type = rs.getString("TABLE_TYPE");
 				
 				if (type != null && type.trim().toUpperCase().equals("TABLE")){
-					result.add(rs.getString("TABLE_NAME"));
+					TreeNode treeNode = new TreeNode();
+					String tableName = rs.getString("TABLE_NAME");
+					treeNode.setTitle(tableName);
+					treeNode.setChildren(getFields(conn,schema,tableName));
+					result.add(treeNode);
 				}
 				
 			}
