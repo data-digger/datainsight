@@ -22,3 +22,10 @@ CREATE TABLE `t_sina_news` (
   `ctime` datetime DEFAULT NULL,
   `title` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `t_price` (
+  `cname` varchar(50) NOT NULL,
+  `price` decimal(5,2) DEFAULT NULL,
+  `update_time` date NOT NULL,
+  PRIMARY KEY (`cname`,`update_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
