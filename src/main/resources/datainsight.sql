@@ -26,6 +26,6 @@ CREATE TABLE `t_sina_news` (
 CREATE TABLE `t_price` (
   `cname` varchar(50) NOT NULL,
   `price` decimal(5,2) DEFAULT NULL,
-  `update_time` date DEFAULT NULL,
-  PRIMARY KEY (`cname`)
+  `update_time` date NOT NULL,
+  PRIMARY KEY (`cname`,`update_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
