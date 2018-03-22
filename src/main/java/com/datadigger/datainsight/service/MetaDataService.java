@@ -1,5 +1,11 @@
 package com.datadigger.datainsight.service;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,9 +24,11 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.datadigger.datainsight.bean.DefaultParameter;
 import com.datadigger.datainsight.bean.GridData;
+import com.datadigger.datainsight.bean.JDBCTable;
 import com.datadigger.datainsight.bean.DateParameter;
 import com.datadigger.datainsight.bean.ListParameter;
 import com.datadigger.datainsight.bean.ParameterValue;
+import com.datadigger.datainsight.bean.TreeNode;
 import com.datadigger.datainsight.bean.ParamGridData;
 import com.datadigger.datainsight.domain.ReportData;
 import com.datadigger.datainsight.domain.BizView;
@@ -37,7 +45,10 @@ import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
 import com.datadigger.datainsight.repository.DataSourceRepository;
 import com.datadigger.datainsight.repository.ReportRepository;
+import com.datadigger.datainsight.util.ConnectionPool;
 import com.datadigger.datainsight.util.StringUtil;
+
+
 import com.datadigger.datainsight.repository.DataTableRepository;
 import com.datadigger.datainsight.repository.ParameterRepository;
 @Service
@@ -77,14 +88,14 @@ public class MetaDataService  {
 		return parameterRepository.findAll();
 	}
 
-	public DataSource createDataSource(DataSource dataSource) {
+	public DataSource saveDataSource(DataSource dataSource) {
 		dataSource.setId(DomainType.DS.getDomainIDPrefix() + dataSource.getName());
 		dastaSourceRespository.save(dataSource);
         log.debug("Create DataSource -- "+ dataSource.getName());
 		return dataSource;
 	}
 	
-	public BizView createBizView(BizView bizView) {
+	public BizView saveBizView(BizView bizView) {
 		bizView.setId(DomainType.BZ.getDomainIDPrefix() + bizView.getName());
 		bizViewRespository.save(bizView);
 		log.debug("Create BizView -- "+ bizView.getName());
@@ -165,28 +176,28 @@ public class MetaDataService  {
 	    	//return SQLExecutor.execute(ds, bizView.getDefineJSON());
     }
     
-    public Chart createChart(Chart chart) {
+    public Chart saveChart(Chart chart) {
 		chart.setId(DomainType.CR.getDomainIDPrefix() + chart.getName());
 		chartRespository.save(chart);
 		log.debug("Create Chart -- "+ chart.getName());
 		return chart;
 	}
     
-    public DataTable createDataTable(DataTable dataTable) {
+    public DataTable saveDataTable(DataTable dataTable) {
     	dataTable.setId(DomainType.DT.getDomainIDPrefix() + dataTable.getName());
     	dataTableRepository.save(dataTable);
 		log.debug("Create dataTable -- "+ dataTable.getName());
 		return dataTable;
 	}
     
-    public Report createReport(Report report) {
+    public Report saveReport(Report report) {
     	report.setId(DomainType.RP.getDomainIDPrefix() + report.getName());
     	reportRespository.save(report);
 		log.debug("Create report -- "+ report.getName());
 		return report;
 	}
     
-    public Parameter createParameter(Parameter parameter) {
+    public Parameter saveParameter(Parameter parameter) {
     	parameter.setId(DomainType.PA.getDomainIDPrefix() + parameter.getName());
     	parameterRepository.save(parameter);
 		log.debug("Create parameter -- "+ parameter.getName());
@@ -474,5 +485,70 @@ public class MetaDataService  {
     	    		dpList.add(getDefaultParameter(pId));
     	   } 
     	    return dpList;
+	}
+	
+
+	public List<TreeNode> getFields(Connection conn, String schema, String tableName) throws SQLException{
+		List<TreeNode> fieldList = new ArrayList<TreeNode>(); 
+		ResultSet rs = conn.getMetaData().getColumns(conn.getCatalog(), schema, tableName, "%");
+		while ( rs.next()){
+			TreeNode treeNode = new TreeNode();
+			treeNode.setTitle(rs.getString("COLUMN_NAME"));
+			fieldList.add(treeNode);
+			
+		}
+		return fieldList;
+	}
+	public List<TreeNode> getTables(String dsId) {
+		DataSource ds = dastaSourceRespository.findOne(dsId);
+		Connection conn = null;
+		PreparedStatement prep = null;
+		String dbType = ds.getDriverType();
+		String charset = ds.getDbCharset();
+	    List<String> schemas = new ArrayList<String>();
+	    String schema = null;
+	    List<TreeNode> result = new ArrayList<TreeNode>();
+		try {
+			conn = ConnectionPool.getInstance().getConnection(ds);
+			DatabaseMetaData meta = conn.getMetaData();
+			ResultSet schemasRS = meta.getSchemas();
+			while (schemasRS.next()) {
+				schemas.add(schemasRS.getString("TABLE_SCHEM"));
+			}
+			if(schemas.isEmpty()){
+				schema = null;
+			}else{
+				schema = schemas.get(0);
+			}
+			String[] types = new String[] {"TABLE","VIEW", "MATERIALIZED QUERY TABLE", "SYNONYM", "ALIAS"};
+			ResultSet rs = meta.getTables(conn.getCatalog(), schema, "%", types);
+			ResultSetMetaData rsMeta = rs.getMetaData();
+			boolean hasRemarks = false;
+			
+			for (int i = 1; i <= rsMeta.getColumnCount(); i++)
+				if (rsMeta.getColumnName(i).equalsIgnoreCase("REMARKS"))
+					hasRemarks = true;
+			
+			while (rs.next()) {
+				String type = rs.getString("TABLE_TYPE");
+				
+				if (type != null && type.trim().toUpperCase().equals("TABLE")){
+					TreeNode treeNode = new TreeNode();
+					String tableName = rs.getString("TABLE_NAME");
+					treeNode.setTitle(tableName);
+					treeNode.setChildren(getFields(conn,schema,tableName));
+					result.add(treeNode);
+				}
+				
+			}
+			rs.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return result;
 	}
 }

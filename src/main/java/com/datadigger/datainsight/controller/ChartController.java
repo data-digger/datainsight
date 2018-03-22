@@ -19,10 +19,10 @@ public class ChartController {
     	return metaDataService.listAllChart();
     }
 
-    @RequestMapping("/chart/new")
-    public String createChart( Chart chart) {
+    @RequestMapping("/chart/save")
+    public String saveChart( Chart chart) {
     	    System.out.println("Chart is " + chart.getName());
-    		String chartId = metaDataService.createChart(chart).getId();
+    		String chartId = metaDataService.saveChart(chart).getId();
     		return chartId;
     }
     

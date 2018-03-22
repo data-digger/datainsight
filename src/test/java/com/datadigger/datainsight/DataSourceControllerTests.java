@@ -37,6 +37,13 @@ public class DataSourceControllerTests {
                 .andReturn();
     }
    
+    @Test
+    public void getTables() throws Exception {
+    mvc.perform(MockMvcRequestBuilders.get("/datasource/gettables").accept(MediaType.APPLICATION_JSON).param("dsId","DS.Sakila"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+    }
 //    @Test
 //    public void createChart() throws Exception {
 //    Chart chart = new Chart();
@@ -56,12 +63,12 @@ public class DataSourceControllerTests {
 //                .andReturn();
 //    }
 //    
-    @Test
-    public void getHello() throws Exception {
-    mvc.perform(MockMvcRequestBuilders.get("/hello").accept(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-    }
+//    @Test
+//    public void getHello() throws Exception {
+//    mvc.perform(MockMvcRequestBuilders.get("/hello").accept(MediaType.APPLICATION_JSON))
+//                .andExpect(MockMvcResultMatchers.status().isOk())
+//                .andDo(MockMvcResultHandlers.print())
+//                .andReturn();
+//    }
 }
 

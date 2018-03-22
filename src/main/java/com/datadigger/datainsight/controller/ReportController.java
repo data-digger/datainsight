@@ -17,10 +17,10 @@ public class ReportController {
     	return metaDataService.listAllReport();
     }
 
-    @RequestMapping("/report/new")
-    public String createReport(Report report) {
+    @RequestMapping("/report/save")
+    public String saveReport(Report report) {
     	    System.out.println("Report is " + report.getName());
-    		String reportId = metaDataService.createReport(report).getId();
+    		String reportId = metaDataService.saveReport(report).getId();
     		return reportId;
     }
     
