@@ -8,6 +8,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -145,12 +146,17 @@ public class MetaDataService  {
 	    		String componetType = o.getString("componenttype");
 	    		dp.setParamId(paramList.get(i));
 	    		dp.setParamType(componetType);
-	   		if(componetType.equals("date")) {  //日期控件默认值设置为当日/当月/当年
+	   		if(componetType.equals("date")) {  //日期控件默认值设置昨天
 	   			DateParameter dateParam = new DateParameter();
 	   			Date currentTime = new Date();
 	   			String format = o.getString("formattype");
 	   			SimpleDateFormat formatter = new SimpleDateFormat(format);
-	   			String dateString = formatter.format(currentTime);
+	   			Calendar cal  =  Calendar.getInstance();
+	   			cal.setTime(currentTime);
+	   			cal.add(Calendar.DATE,-1);
+	   			String dateString = formatter.format(cal.getTime());
+//	   			SimpleDateFormat formatter = new SimpleDateFormat(format);
+//	   			String dateString = formatter.format(currentTime);
 	   			dateParam.setDate(dateString);
 	   			dateParam.setFormat(format);
 	   			dp.setDefaultDate(dateParam);
