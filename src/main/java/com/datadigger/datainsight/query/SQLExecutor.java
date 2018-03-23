@@ -75,7 +75,8 @@ public class SQLExecutor {
 			ResultSetMetaData meta = rs.getMetaData();
 			List<String> columnsName = new ArrayList<String>();
 			for(int i = 1; i <= meta.getColumnCount(); i++) {
-				columnsName.add(meta.getColumnName(i));
+				String cName = meta.getColumnLabel(i)!= null ?meta.getColumnLabel(i):meta.getColumnName(i);
+				columnsName.add(cName);
 			}
 			result.setStringHeaders(columnsName);
 			List<List<CellData>> data = new ArrayList<List<CellData>>();
