@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.datadigger.datainsight.bean.CellData;
 import com.datadigger.datainsight.bean.GridData;
 import com.datadigger.datainsight.domain.DataSource;
+import com.datadigger.datainsight.domain.BizViewColumn;
 import com.datadigger.datainsight.exception.DataDiggerErrorCode;
 import com.datadigger.datainsight.exception.DataDiggerException;
 import com.datadigger.datainsight.repository.DataSourceRepository;
@@ -74,9 +75,18 @@ public class SQLExecutor {
 		
 			ResultSetMetaData meta = rs.getMetaData();
 			List<String> columnsName = new ArrayList<String>();
+			List<String> columnsType = new ArrayList<String>();
+			List<String> tableNames = new ArrayList<String>();
 			for(int i = 1; i <= meta.getColumnCount(); i++) {
-				columnsName.add(meta.getColumnName(i));
+				String tableName = meta.getTableName(i);
+				String ctype = meta.getColumnTypeName(i);
+				String cName = meta.getColumnLabel(i)!= null ?meta.getColumnLabel(i):meta.getColumnName(i);
+				tableNames.add(tableName);
+				columnsType.add(ctype);
+				columnsName.add(cName);
 			}
+			result.setTableNames(tableNames);
+			result.setColumsType(columnsType);
 			result.setStringHeaders(columnsName);
 			List<List<CellData>> data = new ArrayList<List<CellData>>();
 
@@ -452,4 +462,38 @@ public class SQLExecutor {
 			closeDBObject(null, stat, conn);
 		}
 	}
+	
+//	public static List<BizViewColumn> analyzeBizview(DataSource ds, String sql) {
+//		List<BizViewColumn> result = new ArrayList<BizViewColumn>();
+//
+//		Connection conn = null;
+//		PreparedStatement prep = null;
+//		ResultSet rs = null;
+//		try{
+//			conn = ConnectionPool.getInstance().getConnection(ds);
+//			prep = JdbcUtil.prepareStatement(conn,sql);
+//			rs = prep.executeQuery();
+//		
+//			ResultSetMetaData meta = rs.getMetaData();
+//			for(int i = 1; i <= meta.getColumnCount(); i++) {
+//				BizViewColumn bc = new BizViewColumn();
+//				String ctype = meta.getColumnTypeName(i);
+//				String originalName = meta.getColumnName(i);
+//				String aliasName = meta.getColumnLabel(i)!= null ?meta.getColumnLabel(i):meta.getColumnName(i);
+//				bc.setName(originalName);
+//				bc.setAlias(aliasName);
+//				bc.setType(ctype);
+//				result.add(bc);
+//			}
+//			return result;
+//		} catch(Exception e){
+//			throw new DataDiggerException(DataDiggerErrorCode.SQL_ERROR, e).setDetail(sql);
+//		} finally {
+//			try {
+//				closeDBObject(rs, prep, null);
+//			} finally {
+//				closeDBObject(null, null, conn);
+//			}
+//		}
+//	}
 }

@@ -8,6 +8,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +41,7 @@ import com.datadigger.datainsight.domain.Report;
 import com.datadigger.datainsight.domain.DataTable;
 import com.datadigger.datainsight.domain.TableData;
 import com.datadigger.datainsight.domain.Parameter;
+import com.datadigger.datainsight.domain.BizViewColumn;
 import com.datadigger.datainsight.query.SQLExecutor;
 import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
@@ -48,7 +50,7 @@ import com.datadigger.datainsight.repository.ReportRepository;
 import com.datadigger.datainsight.util.ConnectionPool;
 import com.datadigger.datainsight.util.StringUtil;
 
-
+import com.datadigger.datainsight.repository.BizViewColumRepository;
 import com.datadigger.datainsight.repository.DataTableRepository;
 import com.datadigger.datainsight.repository.ParameterRepository;
 @Service
@@ -66,6 +68,8 @@ public class MetaDataService  {
     private DataTableRepository dataTableRepository;
     @Autowired
     private ParameterRepository parameterRepository;
+    @Autowired
+    private BizViewColumRepository bizViewColumRepository;
 	private MetaDataService() {
 	}
 
@@ -145,12 +149,17 @@ public class MetaDataService  {
 	    		String componetType = o.getString("componenttype");
 	    		dp.setParamId(paramList.get(i));
 	    		dp.setParamType(componetType);
-	   		if(componetType.equals("date")) {  //日期控件默认值设置为当日/当月/当年
+	   		if(componetType.equals("date")) {  //日期控件默认值设置昨天
 	   			DateParameter dateParam = new DateParameter();
 	   			Date currentTime = new Date();
 	   			String format = o.getString("formattype");
 	   			SimpleDateFormat formatter = new SimpleDateFormat(format);
-	   			String dateString = formatter.format(currentTime);
+	   			Calendar cal  =  Calendar.getInstance();
+	   			cal.setTime(currentTime);
+	   			cal.add(Calendar.DATE,-1);
+	   			String dateString = formatter.format(cal.getTime());
+//	   			SimpleDateFormat formatter = new SimpleDateFormat(format);
+//	   			String dateString = formatter.format(currentTime);
 	   			dateParam.setDate(dateString);
 	   			dateParam.setFormat(format);
 	   			dp.setDefaultDate(dateParam);
@@ -551,4 +560,63 @@ public class MetaDataService  {
 		}
 		return result;
 	}
+	
+	//获取查询器数据的总记录数
+	public int getTotalCount (DataSource ds,String sqlStament) {
+		String countSql =  "select count(*) from ("+sqlStament+") t" ;
+		GridData rs = SQLExecutor.execute(ds, countSql);
+		return rs.get(0, 0).getIntValue();
+	}
+	//指定每页记录数和当前页进行分页查询
+	public GridData getPageDate(DataSource ds,String sqlStament,int pageSize,int currentPage) {
+		int totalCount = getTotalCount(ds,sqlStament);
+		int totalPage = (int)Math.ceil(totalCount/(pageSize*1.0));	        
+        if (currentPage < 1){
+        		currentPage = 1;
+        }        
+        if (currentPage > totalPage){
+        		currentPage = totalPage;
+        }  
+      //由(pages-1)*limit算出当前页面第一条记录，由limit查询limit条记录。则得出当前页面的记录
+        String pageSql = sqlStament+" limit "+ (currentPage - 1) * pageSize + "," + pageSize;
+        GridData gd = SQLExecutor.execute(ds, pageSql);
+        gd.setTotalRowsCount(totalCount);
+        return gd;
+	}
+	
+	public GridData getBizViewData(String dateSourceId,String sqlStament,String pageSize) {
+    		DataSource ds = dastaSourceRespository.findOne(dateSourceId);
+    		int intPageSize = Integer.parseInt(pageSize);
+    		return getPageDate(ds,sqlStament,intPageSize,1);
+	}
+	
+	public void saveBizViewColumns(List<BizViewColumn> bizViewColumns) {
+		for(int i=0;i<bizViewColumns.size();i++) {
+			BizViewColumn bizViewColumn = bizViewColumns.get(i);
+			String id = bizViewColumn.getBizViewId()+bizViewColumn.getColumnName();
+			bizViewColumn.setId(id);
+			log.debug("Create BizViewColumn -- "+ id);
+		}
+		bizViewColumRepository.save(bizViewColumns);
+	}
+	
+	public List<BizViewColumn> getBizViewColumns(String bizViewId) {
+		List<BizViewColumn> bcList = bizViewColumRepository.findByBizViewId(bizViewId);
+		return bcList;
+	}
+//	public List<BizViewColumn> ananlyzeBizView(BizView bizView) {
+//		DataSource ds = dastaSourceRespository.findOne( bizView.getDataSourceId());
+//		String tableId= bizView.getId();
+//		String defineJSON = bizView.getDefineJSON();
+//		String analyzeSql = defineJSON+" limit 1";
+//		List<BizViewColumn> bcList = SQLExecutor.analyzeBizview(ds,analyzeSql);
+//		for(int i=0; i<bcList.size(); i++) {
+//			BizViewColumn bc = bcList.get(i);
+//			String bcId = tableId+bc.getName();
+//			bc.setId(bcId);
+//			bc.setBizViewId(tableId);
+//		}
+//		return bcList;
+//	}
+	
 }

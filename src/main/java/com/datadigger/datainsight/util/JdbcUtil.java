@@ -50,6 +50,19 @@ public class JdbcUtil {
 			boolean success = prep.execute();
 		}catch(Exception e){
 			log.debug(e.getMessage());
+		}finally{
+			try {
+				prep.close();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 }
