@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.alibaba.fastjson.JSONArray;
 import com.datadigger.datainsight.bean.GridData;
 import com.datadigger.datainsight.domain.BizViewColumn;
 import com.datadigger.datainsight.service.MetaDataService;
@@ -19,7 +20,7 @@ public class BizViewColumnController {
     }
 
     @RequestMapping("/bizview/column/save")
-    public void saveBizViewColumns(List<BizViewColumn> bizViewColumns) {
-    		metaDataService.saveBizViewColumns(bizViewColumns);
+    public void saveBizViewColumns(String columsJSON) {
+    		metaDataService.saveBizViewColumns(columsJSON);
     }
 }

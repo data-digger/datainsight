@@ -76,16 +76,13 @@ public class SQLExecutor {
 			ResultSetMetaData meta = rs.getMetaData();
 			List<String> columnsName = new ArrayList<String>();
 			List<String> columnsType = new ArrayList<String>();
-			List<String> tableNames = new ArrayList<String>();
 			for(int i = 1; i <= meta.getColumnCount(); i++) {
 				String tableName = meta.getTableName(i);
 				String ctype = meta.getColumnTypeName(i);
 				String cName = meta.getColumnLabel(i)!= null ?meta.getColumnLabel(i):meta.getColumnName(i);
-				tableNames.add(tableName);
 				columnsType.add(ctype);
 				columnsName.add(cName);
 			}
-			result.setTableNames(tableNames);
 			result.setColumsType(columnsType);
 			result.setStringHeaders(columnsName);
 			List<List<CellData>> data = new ArrayList<List<CellData>>();

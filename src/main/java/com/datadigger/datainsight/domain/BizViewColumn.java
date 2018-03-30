@@ -24,8 +24,6 @@ public class BizViewColumn implements  Serializable {
 
 	private String columnType;
 	
-	private String tableName;
-	
 	private int groupby;
 	
 	private int filterable;
@@ -83,15 +81,6 @@ public class BizViewColumn implements  Serializable {
 
 	public void setColumnType(String columnType) {
 		this.columnType = columnType;
-	}
-
-	@Column(name = "table_name")
-	public String getTableName() {
-		return tableName;
-	}
-
-	public void setTableName(String tableName) {
-		this.tableName = tableName;
 	}
 	
 	@Column(name = "groupby")
