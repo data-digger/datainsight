@@ -12,8 +12,6 @@ public class GridData implements Serializable {
 	protected List<String> stringHeaders;
 	
 	protected List<String> columsType;
-	
-	protected List<String> tableNames;
 
 	protected List<List<CellData>> data;
 
@@ -74,14 +72,6 @@ public class GridData implements Serializable {
 
 	public void setColumsType(List<String> columsType) {
 		this.columsType = columsType;
-	}
-	
-	public List<String> getTableNames() {
-		return tableNames;
-	}
-
-	public void setTableNames(List<String> tableNames) {
-		this.tableNames = tableNames;
 	}
 
 	public void setWarning(int rowIndex, String warnId) {

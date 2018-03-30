@@ -22,7 +22,6 @@ CREATE TABLE `bizview_columns` (
   `column_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `column_alias` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `column_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
-  `table_name` varchar(255) DEFAULT NULL,
   `groupby` tinyint(1) DEFAULT 0,
   `filterable` tinyint(1) DEFAULT 0,
   `count_distinct` tinyint(1) DEFAULT 0,

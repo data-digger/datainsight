@@ -98,10 +98,13 @@ public class MetaDataService  {
         log.debug("Create DataSource -- "+ dataSource.getName());
 		return dataSource;
 	}
-	
-	public BizView saveBizView(BizView bizView) {
+	/*
+	 * 保存查询器对象
+	 */
+	public BizView saveBizView(BizView bizView,String columsJSON) {
 		bizView.setId(DomainType.BZ.getDomainIDPrefix() + bizView.getName());
 		bizViewRespository.save(bizView);
+		saveBizViewColumns(columsJSON);	//保存列详细信息
 		log.debug("Create BizView -- "+ bizView.getName());
 		return bizView;
 	}
@@ -583,19 +586,55 @@ public class MetaDataService  {
         gd.setTotalRowsCount(totalCount);
         return gd;
 	}
-	
+	/*
+	 * 根据sql语句预览查询器数据
+	 */
 	public GridData getBizViewData(String dateSourceId,String sqlStament,String pageSize) {
     		DataSource ds = dastaSourceRespository.findOne(dateSourceId);
     		int intPageSize = Integer.parseInt(pageSize);
     		return getPageDate(ds,sqlStament,intPageSize,1);
 	}
+	/*
+	 * 根据查询器id预览查询器数据
+	 */
+	public GridData getBizViewData(String bizViewId,String pageSize) {
+		BizView bv = bizViewRespository.findOne(bizViewId);
+		String dateSourceId = bv.getDataSourceId();
+		String sqlStament = bv.getDefineJSON();
+		GridData gd = getBizViewData(dateSourceId,sqlStament,pageSize);
+		List<String> headers = gd.getStringHeaders();
+		for(int i=0; i<gd.getColumnsCount();i++) {	//将查询器原始列名更换为别名
+			String columnName = headers.get(i);
+			BizViewColumn bc = bizViewColumRepository.findByBizViewIdAndColumnName(bizViewId, columnName);
+			String columnAlias = bc.getColumnAlias();
+			headers.set(i, columnAlias);
+		}
+		return gd;
+	}
 	
-	public void saveBizViewColumns(List<BizViewColumn> bizViewColumns) {
-		for(int i=0;i<bizViewColumns.size();i++) {
-			BizViewColumn bizViewColumn = bizViewColumns.get(i);
-			String id = bizViewColumn.getBizViewId()+bizViewColumn.getColumnName();
-			bizViewColumn.setId(id);
+	/*
+	 * 保存查询器列信息
+	 */
+	public void saveBizViewColumns(String columsJSON) {
+		JSONArray bcList = JSONArray.parseArray(columsJSON);	
+		List<BizViewColumn> bizViewColumns = new ArrayList<BizViewColumn>();
+		for(int i=0;i<bcList.size();i++) {
+			JSONObject bcObject = bcList.getJSONObject(0);
+			BizViewColumn bc = new BizViewColumn();
+			bc.setBizViewId(bcObject.getString("bizViewId"));
+			bc.setColumnName(bcObject.getString("columnName"));
+			bc.setColumnAlias(bcObject.getString("columnAlias"));
+			bc.setColumnType(bcObject.getString("columnType"));
+			bc.setCountDistinct(bcObject.getIntValue("countDistinct"));
+			bc.setFilterable(bcObject.getIntValue("filterable"));
+			bc.setGroupby(bcObject.getIntValue("groupby"));
+			bc.setMax(bcObject.getIntValue("max"));
+			bc.setMin(bcObject.getIntValue("min"));
+			bc.setSum(bcObject.getIntValue("sum"));
+			String id = bc.getBizViewId()+"_"+bc.getColumnName();
+			bc.setId(id);
 			log.debug("Create BizViewColumn -- "+ id);
+			bizViewColumns.add(bc);
 		}
 		bizViewColumRepository.save(bizViewColumns);
 	}
