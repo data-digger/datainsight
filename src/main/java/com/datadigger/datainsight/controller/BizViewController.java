@@ -31,8 +31,8 @@ public class BizViewController {
 //    	return metaDataService.getGridData(bizViewId);
 //
 //    }
-    public ParamGridData perviewBizView(String bizViewId) { 	
-    		return metaDataService.getParamGridData(bizViewId);
+    public GridData perviewBizView(String dateSourceId,String sqlStament,String pageSize) { 
+    		return metaDataService.getBizViewData(dateSourceId,sqlStament,pageSize);
    }
     @RequestMapping("/bizview/update")
     public ParamGridData updateBizView(String bizViewId,String JSONParam) {

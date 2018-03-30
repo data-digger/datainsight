@@ -16,6 +16,22 @@ c_parmdesc varchar(255) COLLATE utf8_bin,
 c_parmdefine longtext, 
 PRIMARY KEY (c_parmid)) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE `bizview_columns` (
+  `id` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `bizview_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `column_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `column_alias` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `column_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `table_name` varchar(255) DEFAULT NULL,
+  `groupby` tinyint(1) DEFAULT 0,
+  `filterable` tinyint(1) DEFAULT 0,
+  `count_distinct` tinyint(1) DEFAULT 0,
+  `sum` tinyint(1) DEFAULT 0,
+  `min` tinyint(1) DEFAULT 0,
+  `max` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE DATABASE `demo_db` /*!40100 DEFAULT CHARACTER SET utf8 */;
 CREATE TABLE `t_sina_news` (
   `id` varchar(255) NOT NULL,
