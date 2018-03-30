@@ -21,21 +21,17 @@ public class BizViewController {
     }
 
     @RequestMapping("/bizview/save")
-    public String saveBizView(BizView bizView) {
+    public String saveBizView(BizView bizView,String columsJSON) {
     	    System.out.println("BizView is " + bizView.getName());
-    		String bizViewId = metaDataService.saveBizView(bizView).getId();
+    		String bizViewId = metaDataService.saveBizView(bizView,columsJSON).getId();
     		return bizViewId;
     }
     @RequestMapping("/bizview/preview")
-//    public GridData perviewBizView(String bizViewId) { 	
-//    	return metaDataService.getGridData(bizViewId);
-//
-//    }
-    public ParamGridData perviewBizView(String bizViewId) { 	
-    		return metaDataService.getParamGridData(bizViewId);
-   }
-    @RequestMapping("/bizview/update")
-    public ParamGridData updateBizView(String bizViewId,String JSONParam) {
-    		return metaDataService.updateBizViewData(bizViewId,JSONParam);
-    }
+    public GridData perviewBizView(String dateSourceId,String sqlStament,String pageSize) { 
+    		return metaDataService.getBizViewData(dateSourceId,sqlStament,pageSize);
+   } 
+    @RequestMapping("/bizview/preview/id")
+    public GridData perviewBizView(String bizViewId,String pageSize) { 
+    		return metaDataService.getBizViewData(bizViewId,pageSize);
+   } 
 }

@@ -41,6 +41,7 @@ import com.datadigger.datainsight.domain.Report;
 import com.datadigger.datainsight.domain.DataTable;
 import com.datadigger.datainsight.domain.TableData;
 import com.datadigger.datainsight.domain.Parameter;
+import com.datadigger.datainsight.domain.BizViewColumn;
 import com.datadigger.datainsight.query.SQLExecutor;
 import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
@@ -49,7 +50,7 @@ import com.datadigger.datainsight.repository.ReportRepository;
 import com.datadigger.datainsight.util.ConnectionPool;
 import com.datadigger.datainsight.util.StringUtil;
 
-
+import com.datadigger.datainsight.repository.BizViewColumRepository;
 import com.datadigger.datainsight.repository.DataTableRepository;
 import com.datadigger.datainsight.repository.ParameterRepository;
 @Service
@@ -67,6 +68,8 @@ public class MetaDataService  {
     private DataTableRepository dataTableRepository;
     @Autowired
     private ParameterRepository parameterRepository;
+    @Autowired
+    private BizViewColumRepository bizViewColumRepository;
 	private MetaDataService() {
 	}
 
@@ -95,10 +98,13 @@ public class MetaDataService  {
         log.debug("Create DataSource -- "+ dataSource.getName());
 		return dataSource;
 	}
-	
-	public BizView saveBizView(BizView bizView) {
+	/*
+	 * 保存查询器对象
+	 */
+	public BizView saveBizView(BizView bizView,String columsJSON) {
 		bizView.setId(DomainType.BZ.getDomainIDPrefix() + bizView.getName());
 		bizViewRespository.save(bizView);
+		saveBizViewColumns(columsJSON);	//保存列详细信息
 		log.debug("Create BizView -- "+ bizView.getName());
 		return bizView;
 	}
@@ -557,4 +563,99 @@ public class MetaDataService  {
 		}
 		return result;
 	}
+	
+	//获取查询器数据的总记录数
+	public int getTotalCount (DataSource ds,String sqlStament) {
+		String countSql =  "select count(*) from ("+sqlStament+") t" ;
+		GridData rs = SQLExecutor.execute(ds, countSql);
+		return rs.get(0, 0).getIntValue();
+	}
+	//指定每页记录数和当前页进行分页查询
+	public GridData getPageDate(DataSource ds,String sqlStament,int pageSize,int currentPage) {
+		int totalCount = getTotalCount(ds,sqlStament);
+		int totalPage = (int)Math.ceil(totalCount/(pageSize*1.0));	        
+        if (currentPage < 1){
+        		currentPage = 1;
+        }        
+        if (currentPage > totalPage){
+        		currentPage = totalPage;
+        }  
+      //由(pages-1)*limit算出当前页面第一条记录，由limit查询limit条记录。则得出当前页面的记录
+        String pageSql = sqlStament+" limit "+ (currentPage - 1) * pageSize + "," + pageSize;
+        GridData gd = SQLExecutor.execute(ds, pageSql);
+        gd.setTotalRowsCount(totalCount);
+        return gd;
+	}
+	/*
+	 * 根据sql语句预览查询器数据
+	 */
+	public GridData getBizViewData(String dateSourceId,String sqlStament,String pageSize) {
+    		DataSource ds = dastaSourceRespository.findOne(dateSourceId);
+    		int intPageSize = Integer.parseInt(pageSize);
+    		return getPageDate(ds,sqlStament,intPageSize,1);
+	}
+	/*
+	 * 根据查询器id预览查询器数据
+	 */
+	public GridData getBizViewData(String bizViewId,String pageSize) {
+		BizView bv = bizViewRespository.findOne(bizViewId);
+		String dateSourceId = bv.getDataSourceId();
+		String sqlStament = bv.getDefineJSON();
+		GridData gd = getBizViewData(dateSourceId,sqlStament,pageSize);
+		List<String> headers = gd.getStringHeaders();
+		for(int i=0; i<gd.getColumnsCount();i++) {	//将查询器原始列名更换为别名
+			String columnName = headers.get(i);
+			BizViewColumn bc = bizViewColumRepository.findByBizViewIdAndColumnName(bizViewId, columnName);
+			String columnAlias = bc.getColumnAlias();
+			headers.set(i, columnAlias);
+		}
+		return gd;
+	}
+	
+	/*
+	 * 保存查询器列信息
+	 */
+	public void saveBizViewColumns(String columsJSON) {
+		JSONArray bcList = JSONArray.parseArray(columsJSON);	
+		List<BizViewColumn> bizViewColumns = new ArrayList<BizViewColumn>();
+		for(int i=0;i<bcList.size();i++) {
+			JSONObject bcObject = bcList.getJSONObject(0);
+			BizViewColumn bc = new BizViewColumn();
+			bc.setBizViewId(bcObject.getString("bizViewId"));
+			bc.setColumnName(bcObject.getString("columnName"));
+			bc.setColumnAlias(bcObject.getString("columnAlias"));
+			bc.setColumnType(bcObject.getString("columnType"));
+			bc.setCountDistinct(bcObject.getIntValue("countDistinct"));
+			bc.setFilterable(bcObject.getIntValue("filterable"));
+			bc.setGroupby(bcObject.getIntValue("groupby"));
+			bc.setMax(bcObject.getIntValue("max"));
+			bc.setMin(bcObject.getIntValue("min"));
+			bc.setSum(bcObject.getIntValue("sum"));
+			String id = bc.getBizViewId()+"_"+bc.getColumnName();
+			bc.setId(id);
+			log.debug("Create BizViewColumn -- "+ id);
+			bizViewColumns.add(bc);
+		}
+		bizViewColumRepository.save(bizViewColumns);
+	}
+	
+	public List<BizViewColumn> getBizViewColumns(String bizViewId) {
+		List<BizViewColumn> bcList = bizViewColumRepository.findByBizViewId(bizViewId);
+		return bcList;
+	}
+//	public List<BizViewColumn> ananlyzeBizView(BizView bizView) {
+//		DataSource ds = dastaSourceRespository.findOne( bizView.getDataSourceId());
+//		String tableId= bizView.getId();
+//		String defineJSON = bizView.getDefineJSON();
+//		String analyzeSql = defineJSON+" limit 1";
+//		List<BizViewColumn> bcList = SQLExecutor.analyzeBizview(ds,analyzeSql);
+//		for(int i=0; i<bcList.size(); i++) {
+//			BizViewColumn bc = bcList.get(i);
+//			String bcId = tableId+bc.getName();
+//			bc.setId(bcId);
+//			bc.setBizViewId(tableId);
+//		}
+//		return bcList;
+//	}
+	
 }

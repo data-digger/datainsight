@@ -10,6 +10,8 @@ public class GridData implements Serializable {
 //	protected List<OrderBy> orderBys;
 
 	protected List<String> stringHeaders;
+	
+	protected List<String> columsType;
 
 	protected List<List<CellData>> data;
 
@@ -62,6 +64,14 @@ public class GridData implements Serializable {
 
 	public void setStringHeaders(List<String> stringHeaders) {
 		this.stringHeaders = stringHeaders;
+	}
+	
+	public List<String> getColumsType() {
+		return columsType;
+	}
+
+	public void setColumsType(List<String> columsType) {
+		this.columsType = columsType;
 	}
 
 	public void setWarning(int rowIndex, String warnId) {
