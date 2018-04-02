@@ -21,9 +21,8 @@ public class BizViewController {
     }
 
     @RequestMapping("/bizview/save")
-    public String saveBizView(BizView bizView,String columsJSON) {
-    	    System.out.println("BizView is " + bizView.getName());
-    		String bizViewId = metaDataService.saveBizView(bizView,columsJSON).getId();
+    public String saveBizView(String bizViewJSON,String columsJSON) {
+    		String bizViewId = metaDataService.saveBizView(bizViewJSON,columsJSON).getId();
     		return bizViewId;
     }
     @RequestMapping("/bizview/preview")

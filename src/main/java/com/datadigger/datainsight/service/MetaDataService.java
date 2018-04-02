@@ -101,7 +101,14 @@ public class MetaDataService  {
 	/*
 	 * 保存查询器对象
 	 */
-	public BizView saveBizView(BizView bizView,String columsJSON) {
+	public BizView saveBizView(String bizViewJSON,String columsJSON) {
+		BizView bizView = new BizView();
+		JSONObject o = (JSONObject) JSON.parse(bizViewJSON);
+		bizView.setName(o.getString("name"));
+		bizView.setAlias(o.getString("alias"));
+		bizView.setDesc(o.getString("desc"));
+		bizView.setDefineJSON(o.getString("desc"));
+		bizView.setDataSourceId(o.getString("dataSourceId"));
 		bizView.setId(DomainType.BZ.getDomainIDPrefix() + bizView.getName());
 		bizViewRespository.save(bizView);
 		saveBizViewColumns(columsJSON);	//保存列详细信息
