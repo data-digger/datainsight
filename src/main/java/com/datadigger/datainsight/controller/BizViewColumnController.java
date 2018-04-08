@@ -18,9 +18,9 @@ public class BizViewColumnController {
     public List<BizViewColumn> getBizViewColumns(String bizviewId) {     
     		return metaDataService.getBizViewColumns(bizviewId);
     }
-
-    @RequestMapping("/bizview/column/save")
-    public void saveBizViewColumns(String columsJSON) {
-    		metaDataService.saveBizViewColumns(columsJSON);
-    }
+//
+//    @RequestMapping("/bizview/column/save")
+//    public void saveBizViewColumns(String columsJSON) {
+//    		metaDataService.saveBizViewColumns(columsJSON);
+//    }
 }

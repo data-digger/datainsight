@@ -107,11 +107,11 @@ public class MetaDataService  {
 		bizView.setName(o.getString("name"));
 		bizView.setAlias(o.getString("alias"));
 		bizView.setDesc(o.getString("desc"));
-		bizView.setDefineJSON(o.getString("desc"));
+		bizView.setDefineJSON(o.getString("defineJSON"));
 		bizView.setDataSourceId(o.getString("dataSourceId"));
 		bizView.setId(DomainType.BZ.getDomainIDPrefix() + bizView.getName());
 		bizViewRespository.save(bizView);
-		saveBizViewColumns(columsJSON);	//保存列详细信息
+		saveBizViewColumns(bizView.getId(), columsJSON);	//保存列详细信息
 		log.debug("Create BizView -- "+ bizView.getName());
 		return bizView;
 	}
@@ -613,8 +613,11 @@ public class MetaDataService  {
 		for(int i=0; i<gd.getColumnsCount();i++) {	//将查询器原始列名更换为别名
 			String columnName = headers.get(i);
 			BizViewColumn bc = bizViewColumRepository.findByBizViewIdAndColumnName(bizViewId, columnName);
-			String columnAlias = bc.getColumnAlias();
-			headers.set(i, columnAlias);
+			if(bc!= null) {
+			  String columnAlias = bc.getColumnAlias();
+			  headers.set(i, columnAlias);
+			}
+			
 		}
 		return gd;
 	}
@@ -622,13 +625,13 @@ public class MetaDataService  {
 	/*
 	 * 保存查询器列信息
 	 */
-	public void saveBizViewColumns(String columsJSON) {
+	public void saveBizViewColumns(String bizViewId, String columsJSON) {
 		JSONArray bcList = JSONArray.parseArray(columsJSON);	
 		List<BizViewColumn> bizViewColumns = new ArrayList<BizViewColumn>();
 		for(int i=0;i<bcList.size();i++) {
-			JSONObject bcObject = bcList.getJSONObject(0);
+			JSONObject bcObject = bcList.getJSONObject(i);
 			BizViewColumn bc = new BizViewColumn();
-			bc.setBizViewId(bcObject.getString("bizViewId"));
+			bc.setBizViewId(bizViewId);
 			bc.setColumnName(bcObject.getString("columnName"));
 			bc.setColumnAlias(bcObject.getString("columnAlias"));
 			bc.setColumnType(bcObject.getString("columnType"));
