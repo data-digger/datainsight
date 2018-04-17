@@ -36,6 +36,10 @@ public class BizViewColumn implements  Serializable {
 	
 	private int max;
 	
+	private int category;  //字段分类：0代表原始字段，1代表计算字段， 2代表聚合函数
+	
+	private String expression;
+	
 	@Id
 	@Column(name = "id")
 	public String getId() {
@@ -135,6 +139,23 @@ public class BizViewColumn implements  Serializable {
 
 	public void setMax(int max) {
 		this.max = max;
+	}
+	
+	@Column(name = "category")
+	public int getCategory() {
+		return category;
+	}
+
+	public void setCategory(int category) {
+		this.category = category;
+	}
+	@Column(name = "expression")
+	public String getExpression() {
+		return expression;
+	}
+
+	public void setExpression(String expression) {
+		this.expression = expression;
 	}
 
 	public boolean equals(Object obj) {

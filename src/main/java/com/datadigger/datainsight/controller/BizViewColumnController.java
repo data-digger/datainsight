@@ -14,13 +14,21 @@ import com.datadigger.datainsight.service.MetaDataService;
 public class BizViewColumnController {
 	 @Autowired
 	private MetaDataService metaDataService;
+	 /*
+	  * 获取bizView的所有字段（原始字段+计算字段+聚合函数）
+	  */
     @RequestMapping("/bizview/column/list")
     public List<BizViewColumn> getBizViewColumns(String bizviewId) {     
     		return metaDataService.getBizViewColumns(bizviewId);
     }
-//
-//    @RequestMapping("/bizview/column/save")
-//    public void saveBizViewColumns(String columsJSON) {
-//    		metaDataService.saveBizViewColumns(columsJSON);
-//    }
+
+    @RequestMapping("/bizview/column/save")
+    public void saveBizViewColumns(String bizViewId,String columsJSON) {
+    		metaDataService.saveBizViewColumns(bizViewId,columsJSON);
+    }
+    
+    @RequestMapping("/bizview/column/calculatedfield/preview")
+    public GridData getCalculatedFieldData(String expression,String bizViewSql,String dataSourceId ) {     
+    		return metaDataService.getCalculatedFieldType(expression,bizViewSql,dataSourceId);
+    }
 }

@@ -22,12 +22,14 @@ CREATE TABLE `bizview_columns` (
   `column_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `column_alias` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `column_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
-  `groupby` tinyint(1) DEFAULT 0,
-  `filterable` tinyint(1) DEFAULT 0,
-  `count_distinct` tinyint(1) DEFAULT 0,
-  `sum` tinyint(1) DEFAULT 0,
-  `min` tinyint(1) DEFAULT 0,
-  `max` tinyint(1) DEFAULT 0,
+  `groupby` tinyint(1) DEFAULT '0',
+  `filterable` tinyint(1) DEFAULT '0',
+  `count_distinct` tinyint(1) DEFAULT '0',
+  `sum` tinyint(1) DEFAULT '0',
+  `min` tinyint(1) DEFAULT '0',
+  `max` tinyint(1) DEFAULT '0',
+  `category` tinyint(1) DEFAULT '0',
+  `expression` varchar(1024) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

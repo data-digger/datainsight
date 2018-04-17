@@ -573,7 +573,10 @@ public class MetaDataService  {
 	
 	//获取查询器数据的总记录数
 	public int getTotalCount (DataSource ds,String sqlStament) {
-		String countSql =  "select count(*) from ("+sqlStament+") t" ;
+		StringBuffer countBuffer = new StringBuffer("select count(*) from (");
+		countBuffer.append(sqlStament);
+		countBuffer.append(") t");
+		String countSql =  countBuffer.toString() ;
 		GridData rs = SQLExecutor.execute(ds, countSql);
 		return rs.get(0, 0).getIntValue();
 	}
@@ -588,7 +591,14 @@ public class MetaDataService  {
         		currentPage = totalPage;
         }  
       //由(pages-1)*limit算出当前页面第一条记录，由limit查询limit条记录。则得出当前页面的记录
-        String pageSql = sqlStament+" limit "+ (currentPage - 1) * pageSize + "," + pageSize;
+        //String pageSql = "select * from ("+sqlStament+") t limit "+ (currentPage - 1) * pageSize + "," + pageSize;
+        StringBuffer pageBuffer = new StringBuffer("select * from (");
+        pageBuffer.append(sqlStament);
+        pageBuffer.append(") t limit ");
+        pageBuffer.append((currentPage - 1) * pageSize);
+        pageBuffer.append(",");
+        pageBuffer.append(pageSize);
+        String pageSql = pageBuffer.toString();
         GridData gd = SQLExecutor.execute(ds, pageSql);
         gd.setTotalRowsCount(totalCount);
         return gd;
@@ -602,23 +612,48 @@ public class MetaDataService  {
     		return getPageDate(ds,sqlStament,intPageSize,1);
 	}
 	/*
-	 * 根据查询器id预览查询器数据
+	 * 根据查询器id预览查询器数据(包括原始字段和计算字段数据)
 	 */
 	public GridData getBizViewData(String bizViewId,String pageSize) {
 		BizView bv = bizViewRespository.findOne(bizViewId);
 		String dateSourceId = bv.getDataSourceId();
-		String sqlStament = bv.getDefineJSON();
-		GridData gd = getBizViewData(dateSourceId,sqlStament,pageSize);
-		List<String> headers = gd.getStringHeaders();
-		for(int i=0; i<gd.getColumnsCount();i++) {	//将查询器原始列名更换为别名
-			String columnName = headers.get(i);
-			BizViewColumn bc = bizViewColumRepository.findByBizViewIdAndColumnName(bizViewId, columnName);
-			if(bc!= null) {
-			  String columnAlias = bc.getColumnAlias();
-			  headers.set(i, columnAlias);
+		String bizViewSql = bv.getDefineJSON();
+		List<BizViewColumn> columnList = bizViewColumRepository.findColumnsNotAggregation(bizViewId);
+		StringBuffer sqlStatementBuffer = new StringBuffer("select ");
+		for(int i=0; i<columnList.size();i++) {
+			String name = columnList.get(i).getColumnName();
+			String alias = columnList.get(i).getColumnAlias();
+			String expression = columnList.get(i).getExpression();
+			int category = columnList.get(i).getCategory();
+			if(i==0) {
+				if(category == 0) {
+					sqlStatementBuffer.append(name);
+					sqlStatementBuffer.append(" as ");
+					sqlStatementBuffer.append(alias);		
+				} else {
+					sqlStatementBuffer.append(expression);
+					sqlStatementBuffer.append(" as ");
+					sqlStatementBuffer.append(alias);
+				}
+			} else {
+				if(category == 0) {
+					sqlStatementBuffer.append(", ");
+					sqlStatementBuffer.append(name);
+					sqlStatementBuffer.append(" as ");
+					sqlStatementBuffer.append(alias);		
+				} else {
+					sqlStatementBuffer.append(", ");
+					sqlStatementBuffer.append(expression);
+					sqlStatementBuffer.append(" as ");
+					sqlStatementBuffer.append(alias);
+				}
 			}
-			
 		}
+		sqlStatementBuffer.append(" from (");
+		sqlStatementBuffer.append(bizViewSql);
+		sqlStatementBuffer.append(") t1");
+		String sqlStament = sqlStatementBuffer.toString();
+		GridData gd = getBizViewData(dateSourceId,sqlStament,pageSize);
 		return gd;
 	}
 	
@@ -641,6 +676,10 @@ public class MetaDataService  {
 			bc.setMax(bcObject.getIntValue("max"));
 			bc.setMin(bcObject.getIntValue("min"));
 			bc.setSum(bcObject.getIntValue("sum"));
+			bc.setCategory(bcObject.getIntValue("category"));
+			if(bc.getCategory() != 0) {
+				bc.setExpression(bcObject.getString("expression"));
+			}
 			String id = bc.getBizViewId()+"_"+bc.getColumnName();
 			bc.setId(id);
 			log.debug("Create BizViewColumn -- "+ id);
@@ -653,19 +692,17 @@ public class MetaDataService  {
 		List<BizViewColumn> bcList = bizViewColumRepository.findByBizViewId(bizViewId);
 		return bcList;
 	}
-//	public List<BizViewColumn> ananlyzeBizView(BizView bizView) {
-//		DataSource ds = dastaSourceRespository.findOne( bizView.getDataSourceId());
-//		String tableId= bizView.getId();
-//		String defineJSON = bizView.getDefineJSON();
-//		String analyzeSql = defineJSON+" limit 1";
-//		List<BizViewColumn> bcList = SQLExecutor.analyzeBizview(ds,analyzeSql);
-//		for(int i=0; i<bcList.size(); i++) {
-//			BizViewColumn bc = bcList.get(i);
-//			String bcId = tableId+bc.getName();
-//			bc.setId(bcId);
-//			bc.setBizViewId(tableId);
-//		}
-//		return bcList;
-//	}
+	
+	public GridData getCalculatedFieldType(String expression,String bizViewSql,String dataSourceId) {
+		StringBuffer sqlBuffer = new StringBuffer("select ");
+		sqlBuffer.append(expression);
+		sqlBuffer.append(" from (");
+		sqlBuffer.append(bizViewSql);
+		sqlBuffer.append(") t");		
+		String sqlStatement = sqlBuffer.toString();
+		String pageSize = "5";
+		GridData gd = getBizViewData(dataSourceId,sqlStatement,pageSize);
+		return gd;
+	}
 	
 }
