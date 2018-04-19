@@ -31,4 +31,9 @@ public class BizViewColumnController {
     public GridData getCalculatedFieldData(String expression,String bizViewSql,String dataSourceId ) {     
     		return metaDataService.getCalculatedFieldType(expression,bizViewSql,dataSourceId);
     }
+    
+    @RequestMapping("/bizview/column/delete")
+    public void deleteBizViewColumn(BizViewColumn bizViewColumn) {     
+    		 metaDataService.deleteBizViewColumn(bizViewColumn);
+    }
 }

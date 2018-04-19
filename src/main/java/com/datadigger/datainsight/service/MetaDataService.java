@@ -688,11 +688,16 @@ public class MetaDataService  {
 		bizViewColumRepository.save(bizViewColumns);
 	}
 	
+	/*
+	 * 根据bizViewID获取查询器的所有字段信息
+	 */
 	public List<BizViewColumn> getBizViewColumns(String bizViewId) {
 		List<BizViewColumn> bcList = bizViewColumRepository.findByBizViewId(bizViewId);
 		return bcList;
 	}
-	
+	/*
+	 * 预览计算字段数据
+	 */
 	public GridData getCalculatedFieldType(String expression,String bizViewSql,String dataSourceId) {
 		StringBuffer sqlBuffer = new StringBuffer("select ");
 		sqlBuffer.append(expression);
@@ -704,5 +709,10 @@ public class MetaDataService  {
 		GridData gd = getBizViewData(dataSourceId,sqlStatement,pageSize);
 		return gd;
 	}
-	
+	/*
+	 * 删除查询器字段（计算字段或者聚合函数）
+	 */
+	public void deleteBizViewColumn(BizViewColumn bizViewColumn) {
+		bizViewColumRepository.delete(bizViewColumn);
+	}	
 }
