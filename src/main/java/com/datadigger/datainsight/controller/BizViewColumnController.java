@@ -33,7 +33,7 @@ public class BizViewColumnController {
     }
     
     @RequestMapping("/bizview/column/delete")
-    public void deleteBizViewColumn(BizViewColumn bizViewColumn) {     
-    		 metaDataService.deleteBizViewColumn(bizViewColumn);
+    public void deleteBizViewColumn(String columnsJSON) {     
+    		 metaDataService.deleteBizViewColumn(columnsJSON);
     }
 }

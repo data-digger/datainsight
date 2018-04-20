@@ -656,33 +656,44 @@ public class MetaDataService  {
 		GridData gd = getBizViewData(dateSourceId,sqlStament,pageSize);
 		return gd;
 	}
-	
+	/*
+	 * JSON对象转成BizViewColum
+	 * isUpdate:JSON对象里是否包含bizViewId
+	 */
+	public BizViewColumn jsonObjectToBizViewColumn(JSONObject bcObject, boolean isUpdate) {
+		BizViewColumn bc = new BizViewColumn();
+		bc.setColumnName(bcObject.getString("columnName"));
+		bc.setColumnAlias(bcObject.getString("columnAlias"));
+		bc.setColumnType(bcObject.getString("columnType"));
+		bc.setCountDistinct(bcObject.getIntValue("countDistinct"));
+		bc.setFilterable(bcObject.getIntValue("filterable"));
+		bc.setGroupby(bcObject.getIntValue("groupby"));
+		bc.setMax(bcObject.getIntValue("max"));
+		bc.setMin(bcObject.getIntValue("min"));
+		bc.setSum(bcObject.getIntValue("sum"));
+		bc.setCategory(bcObject.getIntValue("category"));
+		if(bc.getCategory() != 0) {
+			bc.setExpression(bcObject.getString("expression"));
+		}
+		if(isUpdate) {
+			bc.setBizViewId(bcObject.getString("bizViewId"));
+			bc.setId(bcObject.getString("id"));
+		}
+		return bc;
+	}
 	/*
 	 * 保存查询器列信息
 	 */
-	public void saveBizViewColumns(String bizViewId, String columsJSON) {
-		JSONArray bcList = JSONArray.parseArray(columsJSON);	
+	public void saveBizViewColumns(String bizViewId, String columnsJSON) {
+		JSONArray bcList = JSONArray.parseArray(columnsJSON);	
 		List<BizViewColumn> bizViewColumns = new ArrayList<BizViewColumn>();
 		for(int i=0;i<bcList.size();i++) {
 			JSONObject bcObject = bcList.getJSONObject(i);
-			BizViewColumn bc = new BizViewColumn();
-			bc.setBizViewId(bizViewId);
-			bc.setColumnName(bcObject.getString("columnName"));
-			bc.setColumnAlias(bcObject.getString("columnAlias"));
-			bc.setColumnType(bcObject.getString("columnType"));
-			bc.setCountDistinct(bcObject.getIntValue("countDistinct"));
-			bc.setFilterable(bcObject.getIntValue("filterable"));
-			bc.setGroupby(bcObject.getIntValue("groupby"));
-			bc.setMax(bcObject.getIntValue("max"));
-			bc.setMin(bcObject.getIntValue("min"));
-			bc.setSum(bcObject.getIntValue("sum"));
-			bc.setCategory(bcObject.getIntValue("category"));
-			if(bc.getCategory() != 0) {
-				bc.setExpression(bcObject.getString("expression"));
-			}
+			BizViewColumn bc = jsonObjectToBizViewColumn(bcObject,false);
+			bc.setBizViewId(bizViewId);			
 			String id = bc.getBizViewId()+"_"+bc.getColumnName();
 			bc.setId(id);
-			log.debug("Create BizViewColumn -- "+ id);
+			//log.debug("Create BizViewColumn -- "+ id);
 			bizViewColumns.add(bc);
 		}
 		bizViewColumRepository.save(bizViewColumns);
@@ -710,9 +721,16 @@ public class MetaDataService  {
 		return gd;
 	}
 	/*
-	 * 删除查询器字段（计算字段或者聚合函数）
+	 * 删除查询器字段
 	 */
-	public void deleteBizViewColumn(BizViewColumn bizViewColumn) {
-		bizViewColumRepository.delete(bizViewColumn);
+	public void deleteBizViewColumn(String columnsJSON) {
+		JSONArray bcList = JSONArray.parseArray(columnsJSON);	
+		List<BizViewColumn> bizViewColumns = new ArrayList<BizViewColumn>();
+		for(int i=0;i<bcList.size();i++) {
+			JSONObject bcObject = bcList.getJSONObject(i);
+			BizViewColumn bc = jsonObjectToBizViewColumn(bcObject,true);
+			bizViewColumns.add(bc);
+		}
+		bizViewColumRepository.delete(bizViewColumns);
 	}	
 }
