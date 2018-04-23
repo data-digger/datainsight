@@ -32,15 +32,21 @@ public class ChartController {
     		return metaDataService.getChart(chartID);
     }
     
-    @RequestMapping("/chart/preview")
-    public ParamGridData perviewChart(String chartId,String JSONParam) { 	
+//    @RequestMapping("/chart/preview")
+//    public ParamGridData perviewChart(String chartId,String JSONParam) { 	
+//    	return metaDataService.getChartData(chartId,JSONParam);
+//
+//    }
+//    
+    @RequestMapping("/chart/getdata")
+    public ParamGridData getChartData(String chartId,String JSONParam) { 	
     	return metaDataService.getChartData(chartId,JSONParam);
 
     }
     
-    @RequestMapping("/chart/getdata")
-    public ParamGridData getChartData(String chartId,String JSONParam) { 	
-    	return metaDataService.getChartData(chartId,JSONParam);
+    @RequestMapping("/chart/preview")
+    public GridData previewChart(String bizViewId, String filterJSON) { 	
+    	return metaDataService.previewChartData(bizViewId, filterJSON);
 
     }
 }

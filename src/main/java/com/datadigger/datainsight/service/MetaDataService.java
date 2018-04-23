@@ -10,8 +10,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -732,5 +734,214 @@ public class MetaDataService  {
 			bizViewColumns.add(bc);
 		}
 		bizViewColumRepository.delete(bizViewColumns);
-	}	
+	}
+	public GridData previewChartData(String bizViewId, String filterJSON) {
+		BizView bv = bizViewRespository.findOne(bizViewId);
+		String dateSourceId = bv.getDataSourceId();
+		DataSource ds = dastaSourceRespository.findOne(dateSourceId);
+		String sqlStatement = getChartSql(bizViewId,filterJSON);
+		GridData gd = SQLExecutor.execute(ds, sqlStatement);	
+		return gd;
+	}
+	/*
+	 * 获取图表数据
+	 * filterJSON:{
+	 *  value:[bizViewColum],(必须字段)
+	 *  groupby:bizViewColum/null(卡式图表不需要groupby字段，其余图表必须),
+	 *  isgroupy:true/false(是否以groupby字段进行分组)
+	 *  orderby:{field:字段名,type:ASC/DESC},
+	 *  limit:10,
+	 *  contet:[{field:biziewColumn,mark:'=',value:10}]
+	 * }
+	 */
+	public String getChartSql(String bizViewId, String filterJSON) {
+		
+		
+		JSONObject filterObject = (JSONObject) JSON.parse(filterJSON);
+		JSONObject groupbyObject = filterObject.getJSONObject("groupby");
+		boolean isGroupBy = filterObject.getBooleanValue("isgroupby");
+		int limit = filterObject.getIntValue("limit");
+	
+		JSONArray valueObjectList = filterObject.getJSONArray("value");
+		JSONArray whereObjectList = filterObject.getJSONArray("where");
+		
+		JSONObject orderbyObject = filterObject.getJSONObject("orderby");
+		String orderbyField = orderbyObject.getString("field");
+		String orderbyType = orderbyObject.getString("type");
+		
+		String bq = getBizViewStatment(bizViewId);		
+		
+		Map<String,String> whereMap = analyzeContentFilter(whereObjectList);
+		String whereClause = whereMap.get("whereClause");
+		String havingClause = whereMap.get("havingClause");
+		String selectClaus = getSelectClause(groupbyObject,valueObjectList);
+		
+		String finalClause = "("+bq;
+		if (!whereClause.isEmpty()) {
+			finalClause = finalClause + " where" + whereClause;
+		}
+		finalClause = finalClause+") t";
+		
+		
+		finalClause = selectClaus + finalClause;
+		
+		if(isGroupBy==true && groupbyObject!=null) {
+			finalClause = finalClause+ " group by "+groupbyObject.getString("columnName");
+		}
+				
+		if (!havingClause.isEmpty()) {
+			finalClause = finalClause + " having" + havingClause;
+		}
+		if(!orderbyField.isEmpty()) {
+			finalClause = finalClause +" order by "+orderbyField+" "+orderbyType;
+		}
+		if(limit != 0) {
+			finalClause = finalClause+" limit "+limit;
+		}
+
+		return finalClause;
+		
+	}
+	/*
+	 * 解析内容过滤语句
+	 * 解析content内容，生成where子句和having子句
+	 * 当content字段为原始字段或者计算字段时，组装字段名+符号(mark)+值(value)放入where子句
+	 * 当content字段聚合函数时组装字段名+符号(mark)+值(value)放入having子句
+	 * 
+	 */
+	public Map<String,String> analyzeContentFilter(JSONArray whereObjectList){
+		Map<String,String> re = new HashMap<String,String>(2);
+		String whereClause="";
+		String havingClause="";
+		List<JSONObject> whereList = new ArrayList<JSONObject> ();
+		List<JSONObject> havingList = new ArrayList<JSONObject> ();
+		for(int i=0; i<whereObjectList.size(); i++) {
+			JSONObject whereObject = whereObjectList.getJSONObject(i);
+			JSONObject whereField = whereObject.getJSONObject("field");
+			if(whereField != null) {
+				String category = whereField.getString("category");
+				if(category.equals("0") || category.equals("1")) {
+					whereList.add(whereObject);
+				} else {
+					havingList.add(whereObject);
+				}
+			}			
+		}
+		for(int j=0; j<whereList.size(); j++) {
+			JSONObject where = whereList.get(j);
+			JSONObject field = where.getJSONObject("field");
+			String name = field.getString("columnName");
+			String mark = where.getString("mark");
+			String value = where.getString("value");
+			if(!name.isEmpty()) {
+				if(j==0) {
+					whereClause = whereClause + " "+name+" "+mark+" "+value;
+				} else {
+					whereClause = whereClause + " and "+name+" "+mark+" "+value;
+				}
+			}	
+		}
+		re.put("whereClause", whereClause);
+		for(int k=0; k<havingList.size(); k++) {
+			JSONObject having = havingList.get(k);
+			JSONObject field = having.getJSONObject("field");
+			String name = field.getString("columnName");
+			String mark = having.getString("mark");
+			String value = having.getString("value");
+			if(!name.isEmpty()) {
+				if(k==0) {
+					havingClause = havingClause + " "+name+" "+mark+" "+value;
+				} else {
+					havingClause = havingClause + " and "+name+" "+mark+" "+value;
+				}
+			}	
+		}
+		re.put("havingClause", havingClause);
+		return re;
+	}
+	
+	/*
+	 * 根据查询器id组装原始字段和计算字段sql
+	 */
+	public String getBizViewStatment(String bizViewId) {
+		BizView bv = bizViewRespository.findOne(bizViewId);
+		String bizViewSql = bv.getDefineJSON();
+		List<BizViewColumn> columnList = bizViewColumRepository.findColumnsNotAggregation(bizViewId);
+		StringBuffer sqlStatementBuffer = new StringBuffer("select ");
+		for(int i=0; i<columnList.size();i++) {
+			String name = columnList.get(i).getColumnName();
+			String expression = columnList.get(i).getExpression();
+			int category = columnList.get(i).getCategory();
+			if(i==0) {
+				if(category == 0) {
+					sqlStatementBuffer.append(name);
+					sqlStatementBuffer.append(" as ");
+					sqlStatementBuffer.append(name);		
+				} else {
+					sqlStatementBuffer.append(expression);
+					sqlStatementBuffer.append(" as ");
+					sqlStatementBuffer.append(name);
+				}
+			} else {
+				if(category == 0) {
+					sqlStatementBuffer.append(", ");
+					sqlStatementBuffer.append(name);
+					sqlStatementBuffer.append(" as ");
+					sqlStatementBuffer.append(name);		
+				} else {
+					sqlStatementBuffer.append(", ");
+					sqlStatementBuffer.append(expression);
+					sqlStatementBuffer.append(" as ");
+					sqlStatementBuffer.append(name);
+				}
+			}
+		}
+		sqlStatementBuffer.append(" from (");
+		sqlStatementBuffer.append(bizViewSql);
+		sqlStatementBuffer.append(") t1");
+		String sqlStament = sqlStatementBuffer.toString();
+		return sqlStament;
+	}
+	/*
+	 * 根据groupby字段和value字段组装select语句
+	 * 
+	 */
+	public String getSelectClause(JSONObject groupbyObject,JSONArray valueObjectList) {
+		BizViewColumn groupby = null;
+		List<BizViewColumn> valueList = new ArrayList<BizViewColumn>(valueObjectList.size());
+		if(groupbyObject != null) {
+			groupby = jsonObjectToBizViewColumn(groupbyObject,true);
+		}		
+		for(int i=0; i<valueObjectList.size(); i++) {
+			if(valueObjectList.getJSONObject(i)!=null) {
+				BizViewColumn value = jsonObjectToBizViewColumn(valueObjectList.getJSONObject(i),true);
+				valueList.add(value);
+			}
+		}
+		return analyzeSelectClause(groupby,valueList);
+	}
+	public String analyzeSelectClause(BizViewColumn groupby, List<BizViewColumn> valueList) {
+		String selectClause = "select ";
+		if(groupby!=null) {
+			selectClause = selectClause + groupby.getColumnName() + ",";
+		}
+		for(int i=0; i<valueList.size(); i++) {
+			BizViewColumn value = valueList.get(i);
+			if(i==0) {
+				if(value.getCategory() == 0) {
+					selectClause = selectClause+value.getColumnName()+" as "+value.getColumnName();
+				} else {
+					selectClause = selectClause+value.getExpression()+" as "+value.getColumnName();
+				}	
+			} else {
+				if(value.getCategory() == 0) {
+					selectClause = selectClause+", "+value.getColumnName()+" as "+value.getColumnName();
+				} else {
+					selectClause = selectClause+", "+value.getExpression()+" as "+value.getColumnName();
+				}	
+			}
+		}
+		selectClause = selectClause+" from ";
+		return selectClause;
+	}
 }
