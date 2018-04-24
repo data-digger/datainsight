@@ -2,11 +2,10 @@ package com.datadigger.datainsight.domain;
 
 
 import com.datadigger.datainsight.bean.GridData;
-import com.datadigger.datainsight.bean.ParamGridData;
-
 public class ChartData extends Chart{
 
-	private ParamGridData Data;
+	private static final long serialVersionUID = 2270290157790118353L;
+	private GridData Data;
     private String portletID;
 	public ChartData(Chart chart){
 		this.setId(chart.getId());
@@ -18,11 +17,11 @@ public class ChartData extends Chart{
 		this.setType(chart.getType());
 	}
 
-	public ParamGridData getData() {
+	public GridData getData() {
 		return Data;
 	}
 
-	public void setData(ParamGridData data) {
+	public void setData(GridData data) {
 		Data = data;
 	}
 

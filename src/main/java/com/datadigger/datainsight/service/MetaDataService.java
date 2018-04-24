@@ -233,16 +233,16 @@ public class MetaDataService  {
 	    	return r;
 	}
 
-    public ParamGridData getChartData(String chartID, String JSONParam) {
+    public ChartData getChartData(String chartID) {
     	       Chart chart = chartRespository.findOne(chartID);
     	       String bizViewId = chart.getBizViewId();
-    	       ParamGridData pd = new ParamGridData();
-    	       if(StringUtil.isNullOrEmpty(JSONParam)) {
-    	    	   		pd = getParamGridData(bizViewId);		 
-    			} else {
-    				pd = updateBizViewData(bizViewId,JSONParam);
-    			}
-    	       return pd;
+    	       String defineJSON = chart.getDefineJSON();
+    	       JSONObject jsonObject = (JSONObject) JSON.parse(defineJSON);
+    	       String filterJSON = jsonObject.getString("filters");
+    	       GridData gd = previewChartData(bizViewId, filterJSON);
+    	       ChartData cd = new ChartData(chart);
+    	       cd.setData(gd);
+    	       return cd;
     }
     
     public ParamGridData getTableData(String tableID,String JSONParam) {
@@ -257,14 +257,14 @@ public class MetaDataService  {
 	       return pd;
     }
     
-    public ChartData getReptChart(String chartID,String portletID,String JSONparam) {
-    		 Chart chart = getChart(chartID);
-		 ChartData cd =  new ChartData(chart);
-		 cd.setPortletID(portletID);
-		 ParamGridData pd  = getChartData(chartID,JSONparam);
-		 cd.setData(pd);
-	     return cd;
-    }
+//    public ChartData getReptChart(String chartID,String portletID,String JSONparam) {
+//    		 Chart chart = getChart(chartID);
+//		 ChartData cd =  new ChartData(chart);
+//		 cd.setPortletID(portletID);
+//		 ParamGridData pd  = getChartData(chartID,JSONparam);
+//		 cd.setData(pd);
+//	     return cd;
+//    }
     public TableData getReptTable(String tableID,String portletID,String JSONparam) {
     	 	 DataTable dt = getTable(tableID);
     	 	 ParamGridData gd = getTableData(tableID,JSONparam);
@@ -330,9 +330,9 @@ public class MetaDataService  {
 					 tableData.add(td);
 					 dpList = td.getData().getDefaultParameters();	//获取Table的参数对象
 				 } else {
-					 ChartData cd =  getReptChart(objid,portletID,null);
-					 chartData.add(cd);
-					 dpList = cd.getData().getDefaultParameters();	//获取Chart的参数对象
+					// ChartData cd =  getReptChart(objid,portletID,null);
+					 //chartData.add(cd);
+					// dpList = cd.getData().getDefaultParameters();	//获取Chart的参数对象
 				 }
 				 for(int k=0; k<dpList.size(); k++) {
 					 paramSet.add(dpList.get(k));	//报表参数对象合并去重
@@ -367,8 +367,8 @@ public class MetaDataService  {
 					 TableData td = getReptTable(objid,portletID,JSONparam);
 					 tableData.add(td);
 				 } else {
-					 ChartData cd =  getReptChart(objid,portletID,JSONparam);
-					 chartData.add(cd);
+					//ChartData cd =  getReptChart(objid,portletID,JSONparam);
+					// chartData.add(cd);
 				 }
 			 }			 
 		 }

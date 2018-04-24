@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.datadigger.datainsight.bean.GridData;
 import com.datadigger.datainsight.bean.ParamGridData;
 import com.datadigger.datainsight.domain.Chart;
+import com.datadigger.datainsight.domain.ChartData;
 import com.datadigger.datainsight.service.MetaDataService;
 
 @RestController
@@ -39,8 +40,8 @@ public class ChartController {
 //    }
 //    
     @RequestMapping("/chart/getdata")
-    public ParamGridData getChartData(String chartId,String JSONParam) { 	
-    	return metaDataService.getChartData(chartId,JSONParam);
+    public ChartData getChartData(String chartId) { 	
+    	return metaDataService.getChartData(chartId);
 
     }
     
