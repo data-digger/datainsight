@@ -746,19 +746,19 @@ public class MetaDataService  {
 	/*
 	 * 获取图表数据
 	 * filterJSON:{
-	 *  value:[bizViewColum],(必须字段)
-	 *  groupby:bizViewColum/null(卡式图表不需要groupby字段，其余图表必须),
+	 *  value:[columnName],(必须字段)
+	 *  groupby:columnName/null(卡式图表不需要groupby字段，其余图表必须),
 	 *  isgroupy:true/false(是否以groupby字段进行分组)
 	 *  orderby:{field:字段名,type:ASC/DESC},
 	 *  limit:10,
-	 *  contet:[{field:biziewColumn,mark:'=',value:10}]
+	 *  contet:[{field:columnName,mark:'=',value:10}]
 	 * }
 	 */
 	public String getChartSql(String bizViewId, String filterJSON) {
 		
 		
 		JSONObject filterObject = (JSONObject) JSON.parse(filterJSON);
-		JSONObject groupbyObject = filterObject.getJSONObject("groupby");
+		String groupby = filterObject.getString("groupby");
 		boolean isGroupBy = filterObject.getBooleanValue("isgroupby");
 		int limit = filterObject.getIntValue("limit");
 	
@@ -771,10 +771,10 @@ public class MetaDataService  {
 		
 		String bq = getBizViewStatment(bizViewId);		
 		
-		Map<String,String> whereMap = analyzeContentFilter(whereObjectList);
+		Map<String,String> whereMap = analyzeContentFilter(whereObjectList,bizViewId);
 		String whereClause = whereMap.get("whereClause");
 		String havingClause = whereMap.get("havingClause");
-		String selectClaus = getSelectClause(groupbyObject,valueObjectList);
+		String selectClaus = getSelectClause(groupby,valueObjectList,bizViewId);
 		
 		String finalClause = "("+bq;
 		if (!whereClause.isEmpty()) {
@@ -785,8 +785,8 @@ public class MetaDataService  {
 		
 		finalClause = selectClaus + finalClause;
 		
-		if(isGroupBy==true && groupbyObject!=null) {
-			finalClause = finalClause+ " group by "+groupbyObject.getString("columnName");
+		if(isGroupBy==true && !StringUtil.isNullOrEmpty(groupby)) {
+			finalClause = finalClause+ " group by "+groupby;
 		}
 				
 		if (!havingClause.isEmpty()) {
@@ -809,7 +809,7 @@ public class MetaDataService  {
 	 * 当content字段聚合函数时组装字段名+符号(mark)+值(value)放入having子句
 	 * 
 	 */
-	public Map<String,String> analyzeContentFilter(JSONArray whereObjectList){
+	public Map<String,String> analyzeContentFilter(JSONArray whereObjectList,String bizViewId){
 		Map<String,String> re = new HashMap<String,String>(2);
 		String whereClause="";
 		String havingClause="";
@@ -817,10 +817,11 @@ public class MetaDataService  {
 		List<JSONObject> havingList = new ArrayList<JSONObject> ();
 		for(int i=0; i<whereObjectList.size(); i++) {
 			JSONObject whereObject = whereObjectList.getJSONObject(i);
-			JSONObject whereField = whereObject.getJSONObject("field");
-			if(whereField != null) {
-				String category = whereField.getString("category");
-				if(category.equals("0") || category.equals("1")) {
+			String whereField = whereObject.getString("field");
+			if(!StringUtil.isNullOrEmpty(whereField)) {
+				BizViewColumn bc = bizViewColumRepository.findByBizViewIdAndColumnName(bizViewId, whereField);
+				int category = bc.getCategory();
+				if(category == 0 || category == 1) {
 					whereList.add(whereObject);
 				} else {
 					havingList.add(whereObject);
@@ -829,8 +830,7 @@ public class MetaDataService  {
 		}
 		for(int j=0; j<whereList.size(); j++) {
 			JSONObject where = whereList.get(j);
-			JSONObject field = where.getJSONObject("field");
-			String name = field.getString("columnName");
+			String name = where.getString("field");
 			String mark = where.getString("mark");
 			String value = where.getString("value");
 			if(!name.isEmpty()) {
@@ -844,8 +844,7 @@ public class MetaDataService  {
 		re.put("whereClause", whereClause);
 		for(int k=0; k<havingList.size(); k++) {
 			JSONObject having = havingList.get(k);
-			JSONObject field = having.getJSONObject("field");
-			String name = field.getString("columnName");
+			String name = having.getString("field");
 			String mark = having.getString("mark");
 			String value = having.getString("value");
 			if(!name.isEmpty()) {
@@ -906,19 +905,20 @@ public class MetaDataService  {
 	 * 根据groupby字段和value字段组装select语句
 	 * 
 	 */
-	public String getSelectClause(JSONObject groupbyObject,JSONArray valueObjectList) {
-		BizViewColumn groupby = null;
+	public String getSelectClause(String groupby,JSONArray valueObjectList,String bizViewId) {
+		BizViewColumn groupbyColumn = null;
 		List<BizViewColumn> valueList = new ArrayList<BizViewColumn>(valueObjectList.size());
-		if(groupbyObject != null) {
-			groupby = jsonObjectToBizViewColumn(groupbyObject,true);
+		if(!StringUtil.isNullOrEmpty(groupby)) {
+			groupbyColumn = bizViewColumRepository.findByBizViewIdAndColumnName(bizViewId, groupby);
 		}		
 		for(int i=0; i<valueObjectList.size(); i++) {
-			if(valueObjectList.getJSONObject(i)!=null) {
-				BizViewColumn value = jsonObjectToBizViewColumn(valueObjectList.getJSONObject(i),true);
+			String valueName = valueObjectList.getString(i);
+			if(!StringUtil.isNullOrEmpty(valueName)) {
+				BizViewColumn value = bizViewColumRepository.findByBizViewIdAndColumnName(bizViewId, valueName);;
 				valueList.add(value);
 			}
 		}
-		return analyzeSelectClause(groupby,valueList);
+		return analyzeSelectClause(groupbyColumn,valueList);
 	}
 	public String analyzeSelectClause(BizViewColumn groupby, List<BizViewColumn> valueList) {
 		String selectClause = "select ";
