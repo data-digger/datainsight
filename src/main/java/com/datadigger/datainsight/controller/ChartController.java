@@ -1,5 +1,7 @@
 package com.datadigger.datainsight.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,5 +51,9 @@ public class ChartController {
     public GridData previewChart(String bizViewId, String filterJSON) { 	
     	return metaDataService.previewChartData(bizViewId, filterJSON);
 
+    }
+    @RequestMapping("/chart/filter/standby")
+    public List<String> getStandByValue(String bizViewId, String columnName) {
+    	return metaDataService.getStandByValue(bizViewId, columnName);
     }
 }

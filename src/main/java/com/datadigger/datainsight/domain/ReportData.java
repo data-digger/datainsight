@@ -12,6 +12,7 @@ public class ReportData extends Report{
 	private Set<DefaultParameter> parameterSet;
 	private List<ChartData> chartData;
 	private List<TableData> tableData;
+	public ReportData() {}
 	public ReportData(Report r) {
 		this.setId(r.getId());
 		this.setName(r.getName());

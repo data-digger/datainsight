@@ -29,16 +29,16 @@ public class ReportController {
     	   
     		return metaDataService.getReport(reportID);
     }
-    @RequestMapping("/report/getdata")
-    public ReportData getReportData(String reportID) {
+    @RequestMapping("/report/preview")
+    public ReportData getReportData(String reportDefine) {
     	   
-    	 return metaDataService.getReportData(reportID);
+    	 return metaDataService.previewReportData(reportDefine);
     	 
     }
-    @RequestMapping("/report/update")
-    public ReportData updateReportData(String reportID,String JSONparam) {
+    @RequestMapping("/report/getdata")
+    public ReportData updateReportData(String reportID) {
     	   
-    	 return metaDataService.updateReportData(reportID, JSONparam);
+    	 return metaDataService.getReportData(reportID);
     	 
     }
 }

@@ -460,37 +460,52 @@ public class SQLExecutor {
 		}
 	}
 	
-//	public static List<BizViewColumn> analyzeBizview(DataSource ds, String sql) {
-//		List<BizViewColumn> result = new ArrayList<BizViewColumn>();
-//
-//		Connection conn = null;
-//		PreparedStatement prep = null;
-//		ResultSet rs = null;
-//		try{
-//			conn = ConnectionPool.getInstance().getConnection(ds);
-//			prep = JdbcUtil.prepareStatement(conn,sql);
-//			rs = prep.executeQuery();
-//		
-//			ResultSetMetaData meta = rs.getMetaData();
-//			for(int i = 1; i <= meta.getColumnCount(); i++) {
-//				BizViewColumn bc = new BizViewColumn();
-//				String ctype = meta.getColumnTypeName(i);
-//				String originalName = meta.getColumnName(i);
-//				String aliasName = meta.getColumnLabel(i)!= null ?meta.getColumnLabel(i):meta.getColumnName(i);
-//				bc.setName(originalName);
-//				bc.setAlias(aliasName);
-//				bc.setType(ctype);
-//				result.add(bc);
-//			}
-//			return result;
-//		} catch(Exception e){
-//			throw new DataDiggerException(DataDiggerErrorCode.SQL_ERROR, e).setDetail(sql);
-//		} finally {
-//			try {
-//				closeDBObject(rs, prep, null);
-//			} finally {
-//				closeDBObject(null, null, conn);
-//			}
-//		}
-//	}
+	public static GridData executeAllString(DataSource ds, String sql) {
+
+		GridData result = new GridData();
+		int maxRows = Integer.MAX_VALUE;
+		Connection conn = null;
+		PreparedStatement prep = null;
+		ResultSet rs = null;
+		try{
+			conn = ConnectionPool.getInstance().getConnection(ds);
+			
+			prep = JdbcUtil.prepareStatement(conn,sql);
+			rs = prep.executeQuery();
+		
+			ResultSetMetaData meta = rs.getMetaData();
+			List<String> columnsName = new ArrayList<String>();
+			List<String> columnsType = new ArrayList<String>();
+			for(int i = 1; i <= meta.getColumnCount(); i++) {
+				String ctype = meta.getColumnTypeName(i);
+				String cName = meta.getColumnLabel(i)!= null ?meta.getColumnLabel(i):meta.getColumnName(i);
+				columnsType.add(ctype);
+				columnsName.add(cName);
+			}
+			result.setColumsType(columnsType);
+			result.setStringHeaders(columnsName);
+			List<List<CellData>> data = new ArrayList<List<CellData>>();
+			
+			int rowCount = 0;
+			while(rs.next() && ++rowCount <= maxRows) {
+				List<CellData> row = new ArrayList<CellData>(meta.getColumnCount());
+				data.add(row);
+				for(int i = 1; i <= meta.getColumnCount(); i++) {
+					CellData cell = new CellData();
+					cell.setStringValue(rs.getString(i));
+					row.add(cell);
+				}
+			}
+			result.setData(data);
+			return result;
+		} catch(Exception e){
+			throw new DataDiggerException(DataDiggerErrorCode.SQL_ERROR, e).setDetail(sql);
+		} finally {
+			try {
+				closeDBObject(rs, prep, null);
+			} finally {
+				closeDBObject(null, null, conn);
+			}
+		}
+	}
 }

@@ -28,6 +28,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.datadigger.datainsight.bean.DefaultParameter;
 import com.datadigger.datainsight.bean.GridData;
 import com.datadigger.datainsight.bean.JDBCTable;
+import com.datadigger.datainsight.bean.CellData;
 import com.datadigger.datainsight.bean.DateParameter;
 import com.datadigger.datainsight.bean.ListParameter;
 import com.datadigger.datainsight.bean.ParameterValue;
@@ -306,76 +307,64 @@ public class MetaDataService  {
 //		 rd.setTableData(tableData);
 //		 return rd;
 //	}
-    public ReportData getReportData(String reportID) {
-		 Report r = getReport(reportID);
-		 String defineJSON = r.getDefineJSON();
-		 ReportData rd = new ReportData(r);
-		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
+    
+    /* 根据defineJSON获取报表数据
+     * globalFilter:[{name:名称
+			alias:别名
+			type:类型
+			value:过滤值
+			related:[{chartId: , field: , mark:}]}] 关联字段：图表ID，字段名，符号
+     */
+    public ReportData previewReportData(String reportDefine) {
+//		 Report r = getReport(reportID);
+//		 String defineJSON = r.getDefineJSON();
+		 ReportData rd = new ReportData();
+		 JSONObject o = (JSONObject) JSON.parse(reportDefine);
+		 JSONArray globalFilter = o.getJSONObject("header").getJSONArray("globalFilter");
 		 JSONObject content = o.getJSONObject("content");
 		 JSONArray portlets = content.getJSONArray("portlets");
 		 List<ChartData> chartData = new ArrayList<ChartData>();
 		 List<TableData> tableData = new ArrayList<TableData>();
-		 Set<DefaultParameter> paramSet = new HashSet<DefaultParameter>();  
 		 for (int i = 0; i < portlets.size(); i++) {
 			 JSONObject portlet = portlets.getJSONObject(i);
 			 String portletID = portlet.getString("portletID");
 			 JSONArray tabs = portlet.getJSONArray("tabs");
 			 for(int j = 0; j < tabs.size(); j++) {
-				 List<DefaultParameter> dpList = new ArrayList<DefaultParameter>();
 				 JSONObject jobj = tabs.getJSONObject(j);
 				 String objtype = jobj.getString("objtype");
 				 String objid = jobj.getString("objid");
 				 if(objtype.equals("Table")) {
-					 TableData td = getReptTable(objid,portletID,null);
-					 tableData.add(td);
-					 dpList = td.getData().getDefaultParameters();	//获取Table的参数对象
+//					 TableData td = getReptTable(objid,portletID,null);
+//					 tableData.add(td);
+//					 dpList = td.getData().getDefaultParameters();	//获取Table的参数对象
 				 } else {
-					// ChartData cd =  getReptChart(objid,portletID,null);
-					 //chartData.add(cd);
-					// dpList = cd.getData().getDefaultParameters();	//获取Chart的参数对象
-				 }
-				 for(int k=0; k<dpList.size(); k++) {
-					 paramSet.add(dpList.get(k));	//报表参数对象合并去重
+					   Chart chart =  chartRespository.findOne(objid);
+					   String bizViewId = chart.getBizViewId();
+					   ChartData cd = new ChartData(chart);
+					   cd.setPortletID(portletID);
+					   String repChartDefine = combineFilters(chart,globalFilter); 
+					   GridData gd = previewChartData(bizViewId,repChartDefine);
+					   cd.setData(gd);
+					   chartData.add(cd);
 				 }
 			 }
 			 
 		 }
-		 rd.setParameterSet(paramSet);
 		 rd.setChartData(chartData);
 		 rd.setTableData(tableData);
 		 return rd;
 	}
-    
-    public ReportData updateReportData(String reportID,String JSONparam) {
+    /* 根据报表ID获取报表数据
+     * 
+     */
+    public ReportData getReportData(String reportID) {
 		 Report r = getReport(reportID);
-		 String reportDefine = r.getDefineJSON();
-		 ReportData rd = new ReportData(r);
-		 JSONObject o = (JSONObject) JSON.parse(reportDefine);
-		 JSONObject content = o.getJSONObject("content");
-		 JSONArray portlets = content.getJSONArray("portlets");
-		 List<ChartData> chartData = new ArrayList<ChartData>();
-		 List<TableData> tableData = new ArrayList<TableData>();
-		 for (int i = 0; i < portlets.size(); i++) {
-			 JSONObject portlet = portlets.getJSONObject(i);
-			 String portletID = portlet.getString("portletID");
-			 JSONArray tabs = portlet.getJSONArray("tabs");
-			 for(int j = 0; j < tabs.size(); j++) {
-				 JSONObject jobj = tabs.getJSONObject(j);
-				 String objtype = jobj.getString("objtype");
-				 String objid = jobj.getString("objid");
-				 if(objtype.equals("Table")) {
-					 TableData td = getReptTable(objid,portletID,JSONparam);
-					 tableData.add(td);
-				 } else {
-					//ChartData cd =  getReptChart(objid,portletID,JSONparam);
-					// chartData.add(cd);
-				 }
-			 }			 
-		 }
-		 rd.setChartData(chartData);
-		 rd.setTableData(tableData);
+		 String defineJSON = r.getDefineJSON();
+		 ReportData rd = previewReportData(defineJSON);
+		 //Map<String,Object> standbyValue = new HashMap<String,Object>();
 		 return rd;
-	}
+    }
+    
 	public Chart getChart(String chartID) {
 		Chart chart = chartRespository.findOne(chartID);
 		
@@ -751,11 +740,10 @@ public class MetaDataService  {
 	 *  isgroupy:true/false(是否以groupby字段进行分组)
 	 *  orderby:{field:字段名,type:ASC/DESC},
 	 *  limit:10,
-	 *  contet:[{field:columnName,mark:'=',value:10}]
+	 *  where:[{field:columnName,mark:'=',value:10}]
 	 * }
 	 */
 	public String getChartSql(String bizViewId, String filterJSON) {
-		
 		
 		JSONObject filterObject = (JSONObject) JSON.parse(filterJSON);
 		String groupby = filterObject.getString("groupby");
@@ -795,10 +783,10 @@ public class MetaDataService  {
 		if(!orderbyField.isEmpty()) {
 			finalClause = finalClause +" order by "+orderbyField+" "+orderbyType;
 		}
-		if(limit != 0) {
-			finalClause = finalClause+" limit "+limit;
+		if(limit > 200) {
+			limit = 200;
 		}
-
+		finalClause = finalClause+" limit "+limit;
 		return finalClause;
 		
 	}
@@ -832,7 +820,7 @@ public class MetaDataService  {
 			JSONObject where = whereList.get(j);
 			String name = where.getString("field");
 			String mark = where.getString("mark");
-			String value = where.getString("value");
+			String value = formatValue(where,mark);
 			if(!name.isEmpty()) {
 				if(j==0) {
 					whereClause = whereClause + " "+name+" "+mark+" "+value;
@@ -846,7 +834,7 @@ public class MetaDataService  {
 			JSONObject having = havingList.get(k);
 			String name = having.getString("field");
 			String mark = having.getString("mark");
-			String value = having.getString("value");
+			String value = formatValue(having,mark);
 			if(!name.isEmpty()) {
 				if(k==0) {
 					havingClause = havingClause + " "+name+" "+mark+" "+value;
@@ -859,6 +847,45 @@ public class MetaDataService  {
 		return re;
 	}
 	
+	/*
+	 * 格式化过滤值 IN [1,2,3] => IN ('1','2','3')
+	 * 			  其他 1 => '1'
+	 *
+	 */
+	public String formatValue(JSONObject where,String mark) {
+		String value = "";
+		if(mark.equals("IN") || mark.equals("NOT IN")) {
+			JSONArray inValues = where.getJSONArray("value");
+			StringBuffer inBuffer = new StringBuffer("(");
+			for(int k=0; k<inValues.size();k++) {
+				String inValue = inValues.getString(k);
+				if(k == 0) {
+					inBuffer.append(formatValue(inValue));
+				} else {
+					inBuffer.append(",");
+					inBuffer.append(formatValue(inValue));
+				}
+			}
+			inBuffer.append(")");
+			value = inBuffer.toString();
+		} else {
+			StringBuffer inBuffer = new StringBuffer();
+			inBuffer.append(formatValue(where.getString("value")));
+			value = inBuffer.toString();
+		}
+		return value;
+	}
+	/*
+	 * 格式化过滤值 1 => '1'
+	 * 
+	 *
+	 */
+	public String formatValue(String value) {
+		StringBuffer valueBuffer = new StringBuffer("'");
+		valueBuffer.append(value);
+		valueBuffer.append("'");
+		return valueBuffer.toString();
+	}
 	/*
 	 * 根据查询器id组装原始字段和计算字段sql
 	 */
@@ -923,7 +950,11 @@ public class MetaDataService  {
 	public String analyzeSelectClause(BizViewColumn groupby, List<BizViewColumn> valueList) {
 		String selectClause = "select ";
 		if(groupby!=null) {
-			selectClause = selectClause + groupby.getColumnName() + ",";
+			if(groupby.getCategory() == 0 || groupby.getCategory() == 1) {
+				selectClause = selectClause + groupby.getColumnName() + ",";
+			} else {
+				selectClause = selectClause+groupby.getExpression()+" as "+groupby.getColumnName()+ ",";
+			}	
 		}
 		for(int i=0; i<valueList.size(); i++) {
 			BizViewColumn value = valueList.get(i);
@@ -943,5 +974,73 @@ public class MetaDataService  {
 		}
 		selectClause = selectClause+" from ";
 		return selectClause;
+	}
+	
+	/* 
+     * 获取过滤列表候选值(最大候选数为200)
+     */ 
+	public List<String> getStandByValue(String bizViewId,String columnName){
+		List<String> result = new ArrayList<String>();
+		BizView bv = bizViewRespository.findOne(bizViewId);
+		String bq = getBizViewStatment(bizViewId);
+		String dateSourceId = bv.getDataSourceId();
+		DataSource ds = dastaSourceRespository.findOne(dateSourceId);
+		StringBuffer sqlBuffer = new StringBuffer("select distinct ");
+		sqlBuffer.append(columnName);
+		sqlBuffer.append(" from (");
+		sqlBuffer.append(bq);
+		sqlBuffer.append(") t limit 200");
+		String sql = sqlBuffer.toString();
+		GridData gd = SQLExecutor.executeAllString(ds, sql);	
+		List<List<CellData>> cellDataList = gd.getData();
+		for(int i=0; i<cellDataList.size(); i++) {
+			result.add(cellDataList.get(i).get(0).getStringValue());
+		}
+		return result;
+		
+	}
+	/*合并全局过滤条件和私有过滤条件
+     * globalFilter:[{name:名称
+			alias:别名
+			type:类型
+			value:过滤值
+			related:[{chartId: , field: , mark:}]}] 关联字段：图表ID，字段名，符号
+     */
+	public String combineFilters(Chart chart, JSONArray globalFilter) {
+		String chartDefine = chart.getDefineJSON();
+		if(globalFilter.size() == 0) {
+			return chartDefine;
+		} else {
+			String chartId = chart.getId();
+			JSONObject chartDefineObject = (JSONObject) JSON.parse(chartDefine);
+			JSONObject chartFilter = chartDefineObject.getJSONObject("filters");
+			JSONArray whereList = chartFilter.getJSONArray("where");
+			for(int i=0; i<globalFilter.size(); i++) {
+				JSONObject gfo = globalFilter.getJSONObject(i);
+				String gValue = gfo.getString("value");
+				JSONArray relatedFields = gfo.getJSONArray("related");
+				for(int j=0; j<relatedFields.size(); j++) {
+					JSONObject relatedField = relatedFields.getJSONObject(j);
+					String rid = relatedField.getString("chartId");
+					if(rid.equals(chartId)) {
+						String rField = relatedField.getString("field");
+						String rMark = relatedField.getString("mark");
+						for(int k=0; k<whereList.size(); k++) {
+							JSONObject whereObject = whereList.getJSONObject(k);
+							String wField = whereObject.getString("field");
+							String wMark = whereObject.getString("mark");
+							if(wField.equals(rField) && wMark.equals(rMark)) {
+								whereObject.put("value", gValue);
+							}
+						}
+					}
+				}
+			}
+			String reportChartDefine = chartDefineObject.toJSONString();
+			return reportChartDefine;
+		}
+		
+		
+		
 	}
 }
