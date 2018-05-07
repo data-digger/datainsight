@@ -300,9 +300,8 @@ public class MetaDataService  {
 					   String bizViewId = chart.getBizViewId();
 					   ChartData cd = new ChartData(chart);
 					   cd.setPortletID(portletID);
-					   String repChartDefine = combineFilters(chart,globalFilter);
-					   JSONObject rcdo = (JSONObject) JSON.parse(repChartDefine);
-					   String repChartFilter = rcdo.getString("filters");
+					   JSONObject repChartDefine = combineFilters(chart,globalFilter);
+					   String repChartFilter = repChartDefine.getString("filters");
 					   GridData gd = previewChartData(bizViewId,repChartFilter);
 					   cd.setData(gd);
 					   chartData.add(cd);
@@ -322,7 +321,7 @@ public class MetaDataService  {
 		 String defineJSON = r.getDefineJSON();
 		 String defaultDefine = setDefaultDateInFilter(defineJSON);
 		 ReportData rd = previewReportData(defaultDefine);
-		 Map<String,List<String>> standbyValue = getReportStandByValue(defaultDefine);
+
 		 return rd;
     }
     
@@ -987,10 +986,10 @@ public class MetaDataService  {
 			value:过滤值
 			related:[{chartId: , field: , mark:}]}] 关联字段：图表ID，字段名，符号
      */
-	public String combineFilters(Chart chart, JSONArray globalFilter) {
+	public JSONObject combineFilters(Chart chart, JSONArray globalFilter) {
 		String chartDefine = chart.getDefineJSON();
 		if(globalFilter.size() == 0) {
-			return chartDefine;
+			return (JSONObject) JSON.parse(chartDefine);
 		} else {
 			String chartId = chart.getId();
 			JSONObject chartDefineObject = (JSONObject) JSON.parse(chartDefine);
@@ -1017,8 +1016,8 @@ public class MetaDataService  {
 					}
 				}
 			}
-			String reportChartDefine = chartDefineObject.toJSONString();
-			return reportChartDefine;
+			//String reportChartDefine = chartDefineObject.toJSONString();
+			return chartDefineObject;
 		}
 	}
 	
