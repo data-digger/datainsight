@@ -342,8 +342,10 @@ public class MetaDataService  {
 					   String bizViewId = chart.getBizViewId();
 					   ChartData cd = new ChartData(chart);
 					   cd.setPortletID(portletID);
-					   String repChartDefine = combineFilters(chart,globalFilter); 
-					   GridData gd = previewChartData(bizViewId,repChartDefine);
+					   String repChartDefine = combineFilters(chart,globalFilter);
+					   JSONObject rcdo = (JSONObject) JSON.parse(repChartDefine);
+					   String repChartFilter = rcdo.getString("filters");
+					   GridData gd = previewChartData(bizViewId,repChartFilter);
 					   cd.setData(gd);
 					   chartData.add(cd);
 				 }
