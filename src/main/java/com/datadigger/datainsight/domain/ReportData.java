@@ -9,9 +9,10 @@ import com.datadigger.datainsight.bean.DefaultParameter;
 
 public class ReportData extends Report{
 	private static final long serialVersionUID = 4822506708339397689L;
-	private Set<DefaultParameter> parameterSet;
-	private List<ChartData> chartData;
-	private List<TableData> tableData;
+	private List<ChartData> chartData;  //统计图数据
+	private List<TableData> tableData;	//表格数据
+	private Map<String,List<String>> standbyValueMap; //候选值列表
+	
 	public ReportData() {}
 	public ReportData(Report r) {
 		this.setId(r.getId());
@@ -20,18 +21,6 @@ public class ReportData extends Report{
 		this.setDefineJSON(r.getDefineJSON());
 		this.setDesc(r.getDesc());
 	}
-
-	public Set<DefaultParameter> getParameterSet() {
-		return parameterSet;
-	}
-
-
-
-	public void setParameterSet(Set<DefaultParameter> parameterSet) {
-		this.parameterSet = parameterSet;
-	}
-
-
 
 	public List<ChartData> getChartData() {
 		return chartData;
@@ -44,5 +33,11 @@ public class ReportData extends Report{
 	}
 	public void setTableData(List<TableData> tableData) {
 		this.tableData = tableData;
+	}
+	public Map<String, List<String>> getStandbyValueMap() {
+		return standbyValueMap;
+	}
+	public void setStandbyValueMap(Map<String, List<String>> standbyValueMap) {
+		this.standbyValueMap = standbyValueMap;
 	}
 }

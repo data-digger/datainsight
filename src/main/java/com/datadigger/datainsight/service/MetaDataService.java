@@ -257,15 +257,6 @@ public class MetaDataService  {
 			}
 	       return pd;
     }
-    
-//    public ChartData getReptChart(String chartID,String portletID,String JSONparam) {
-//    		 Chart chart = getChart(chartID);
-//		 ChartData cd =  new ChartData(chart);
-//		 cd.setPortletID(portletID);
-//		 ParamGridData pd  = getChartData(chartID,JSONparam);
-//		 cd.setData(pd);
-//	     return cd;
-//    }
     public TableData getReptTable(String tableID,String portletID,String JSONparam) {
     	 	 DataTable dt = getTable(tableID);
     	 	 ParamGridData gd = getTableData(tableID,JSONparam);
@@ -274,39 +265,6 @@ public class MetaDataService  {
 		 td.setPortletID(portletID);
 	     return td;
     }
-
-//	public ReportData getReportData(String reportID) {
-//		 Report r = getReport(reportID);
-//		 String defineJSON = r.getDefineJSON();
-//		 ReportData rd = new ReportData(r);
-//		 JSONObject o = (JSONObject) JSON.parse(defineJSON);
-//		 JSONObject content = o.getJSONObject("content");
-//		 JSONArray portlets = content.getJSONArray("portlets");
-//		 List<ChartData> chartData = new ArrayList<ChartData>();
-//		 List<TableData> tableData = new ArrayList<TableData>();
-//		 for (int i = 0; i < portlets.size(); i++) {
-//			 JSONObject portlet = portlets.getJSONObject(i);
-//			 String portletID = portlet.getString("portletID");
-//			 JSONArray tabs = portlet.getJSONArray("tabs");
-//			 for(int j = 0; j < tabs.size(); j++) {
-//				 JSONObject jobj = tabs.getJSONObject(j);
-//				 String objtype = jobj.getString("objtype");
-//				 String objid = jobj.getString("objid");
-//				 if(objtype.equals("Table")) {
-//					 TableData td = getReptTable(objid,portletID);
-//					 tableData.add(td);
-//				 } else {
-//					 ChartData cd =  getReptChart(objid,portletID);
-//					 chartData.add(cd);
-//				 }
-//				 
-//			 }
-//			 
-//		 }
-//		 rd.setChartData(chartData);
-//		 rd.setTableData(tableData);
-//		 return rd;
-//	}
     
     /* 根据defineJSON获取报表数据
      * globalFilter:[{name:名称
@@ -360,8 +318,9 @@ public class MetaDataService  {
     public ReportData getReportData(String reportID) {
 		 Report r = getReport(reportID);
 		 String defineJSON = r.getDefineJSON();
-		 ReportData rd = previewReportData(defineJSON);
-		 //Map<String,Object> standbyValue = new HashMap<String,Object>();
+		 String defaultDefine = setDefaultDateInFilter(defineJSON);
+		 ReportData rd = previewReportData(defaultDefine);
+		 Map<String,List<String>> standbyValue = getReportStandByValue(defaultDefine);
 		 return rd;
     }
     
@@ -996,10 +955,30 @@ public class MetaDataService  {
 		for(int i=0; i<cellDataList.size(); i++) {
 			result.add(cellDataList.get(i).get(0).getStringValue());
 		}
-		return result;
-		
+		return result;		
 	}
-	/*合并全局过滤条件和私有过滤条件
+	
+	/* 
+     * 获取报表全局过滤（单选和多选）的候选值列表
+     */ 
+	public Map<String,List<String>> getReportStandByValue(JSONArray gfList){
+		Map<String,List<String>> result = new HashMap<String,List<String>>();
+		for(int i=0; i<gfList.size(); i++) {
+			JSONObject o = gfList.getJSONObject(i);
+			String otype = o.getString("type");
+			if (otype.equals("singleSelect") || otype.equals("multiSelect")) {	//控件类型为单选或者多选时要获取该字段的候选值列表供用户选择
+				JSONObject related = o.getJSONArray("related").getJSONObject(0);  //以第一个关联字段为准获取该字段的候选值列表
+				String chartId = related.getString("chartId");
+				String field = related.getString("field");
+				Chart chart = chartRespository.findOne(chartId);
+				String bizViewId = chart.getBizViewId();
+				List<String> standby =  getStandByValue(bizViewId,field);
+				result.put(field, standby);
+			}
+		}
+		return result;
+	}
+	/*合并全局过滤条件和图表私有过滤条件
      * globalFilter:[{name:名称
 			alias:别名
 			type:类型
@@ -1039,8 +1018,60 @@ public class MetaDataService  {
 			String reportChartDefine = chartDefineObject.toJSONString();
 			return reportChartDefine;
 		}
-		
-		
-		
+	}
+	
+	/*
+	 * 获取默认日期值
+	 * 日类型：2018-05-07
+	 * 月类型：2018-05
+	 * 自定义类型：前端用户自定义format
+	 */
+	public String getDefaultDate(String dateType,int forward,String format) {
+			Date currentTime = new Date();
+			String dayFormat = "yyyy-MM-dd";
+			String monFormat = "yyyy-MM";
+			String userFormat = format;
+			Calendar cal  =  Calendar.getInstance();
+			cal.setTime(currentTime);
+			String dateString;
+			if(dateType == "DateByDay") {
+				SimpleDateFormat formatter = new SimpleDateFormat(dayFormat);
+				cal.add(Calendar.DATE,-forward);
+				dateString = formatter.format(cal.getTime());
+			} else if(dateType == "DateByMonth")  {
+				SimpleDateFormat formatter = new SimpleDateFormat(monFormat);
+				cal.add(Calendar.MONTH,-forward);
+				dateString = formatter.format(cal.getTime());
+			} else {
+				SimpleDateFormat formatter = new SimpleDateFormat(userFormat);
+				//cal.add(Calendar.MONTH,-forward);
+				dateString = formatter.format(cal.getTime());
+			}
+			return dateString;
+	}
+	
+	/*在初始化报表时，时间控件填入默认值
+     * globalFilter:[{name:名称
+			alias:别名
+			type:类型
+			value:过滤值
+			related:[{chartId: , field: , mark:}]}] 关联字段：图表ID，字段名，符号
+     */
+	public String setDefaultDateInFilter(String reportDefine) {
+		JSONObject rdo = (JSONObject) JSON.parse(reportDefine);
+		JSONArray gfList = rdo.getJSONObject("header").getJSONArray("globalFilter");
+		for(int i=0; i<gfList.size(); i++) {
+			JSONObject o = gfList.getJSONObject(i);
+			String otype = o.getString("type");
+			if (otype.equals("DateByDay") || otype.equals("DateByMonth")) {
+				String defaultDate = getDefaultDate(otype,1,null); 
+				o.put("value", defaultDate);
+			} else if(otype.equals("DateByUser")) {
+				String format = o.getString("value");
+				String defaultDate = getDefaultDate(otype,0,format); 
+				o.put("value", defaultDate);
+			}
+		}
+		return gfList.toJSONString();
 	}
 }
