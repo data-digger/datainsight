@@ -1064,15 +1064,18 @@ public class MetaDataService  {
 		for(int i=0; i<gfList.size(); i++) {
 			JSONObject o = gfList.getJSONObject(i);
 			String otype = o.getString("type");
-			if (otype.equals("DateByDay") || otype.equals("DateByMonth")) {
-				String defaultDate = getDefaultDate(otype,1,null); 
-				o.put("value", defaultDate);
-			} else if(otype.equals("DateByUser")) {
-				String format = o.getString("value");
-				String defaultDate = getDefaultDate(otype,0,format); 
-				o.put("value", defaultDate);
+			if(!StringUtil.isNullOrEmpty(otype)) {
+				if (otype.equals("DateByDay") || otype.equals("DateByMonth")) {
+					String defaultDate = getDefaultDate(otype,1,null); 
+					o.put("value", defaultDate);
+				} else if(otype.equals("DateByUser")) {
+					String format = o.getString("value");
+					String defaultDate = getDefaultDate(otype,0,format); 
+					o.put("value", defaultDate);
+				}
 			}
+			
 		}
-		return gfList.toJSONString();
+		return rdo.toJSONString();
 	}
 }
