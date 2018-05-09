@@ -30,15 +30,21 @@ public class ReportController {
     		return metaDataService.getReport(reportID);
     }
     @RequestMapping("/report/preview")
-    public ReportData getReportData(String reportDefine) {
+    public ReportData initReportByJSON(String reportDefine) {
     	   
-    	 return metaDataService.previewReportData(reportDefine);
+    	 return metaDataService.initReportByJSON(reportDefine);
     	 
     }
     @RequestMapping("/report/getdata")
-    public ReportData updateReportData(String reportID) {
+    public ReportData initReportById(String reportID) {
     	   
-    	 return metaDataService.getReportData(reportID);
+    	 return metaDataService.initReportById(reportID);
+    	 
+    }
+    @RequestMapping("/report/update")
+    public ReportData updateReportData(String reportDefine) {
+    	   
+    	 return metaDataService.updateReportData(reportDefine);
     	 
     }
 }

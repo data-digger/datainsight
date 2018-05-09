@@ -125,78 +125,6 @@ public class MetaDataService  {
     		return SQLExecutor.execute(ds, bizView.getDefineJSON());
 	}
 	
-	public Matcher matchRegEx (String sentence) {
-		String regEx = "\\^.*?\\^";
-		Pattern pattern = Pattern.compile(regEx);
-		Matcher matcher = pattern.matcher(sentence);
-		return matcher;
-	}
-	/*
-	 * 获取带参数对象的查询器数据
-	 */
-    public ParamGridData getParamGridData(String bizViewId){
-	    	BizView bizView = bizViewRespository.findOne(bizViewId);
-	    	String dataSourceId = bizView.getDataSourceId();
-	    	DataSource ds = dastaSourceRespository.findOne(dataSourceId);
-	    	String defineJSON = bizView.getDefineJSON();
-	    	List<String> paramList = new ArrayList<String>();	   
-	    	List<Object> paramValue = new ArrayList<Object>();
-	    	ParamGridData pd = new ParamGridData();
-	    List<DefaultParameter> dpList = new ArrayList<DefaultParameter>();
-
-	    Matcher matcher = matchRegEx(defineJSON);
-	    // 查找字符串中匹配的正则表达式的字符/字符串
-	    while(matcher.find()) { 
-	    		String pStr = matcher.group();
-	    		int len = pStr.length();
-	    		String pId = pStr.substring(1, len-1);
-	    		paramList.add(pId);
-	   } 
-	    String paramSql = matcher.replaceAll("?");   
-	    
-	    for(int i=0; i<paramList.size();i++) {
-	    		DefaultParameter dp = new DefaultParameter();
-	    		Parameter param = parameterRepository.findOne(paramList.get(i));
-	    		String paramDefine = param.getDefineJSON();
-	    		JSONObject o = (JSONObject) JSON.parse(paramDefine);
-	    		String componetType = o.getString("componenttype");
-	    		dp.setParamId(paramList.get(i));
-	    		dp.setParamType(componetType);
-	   		if(componetType.equals("date")) {  //日期控件默认值设置昨天
-	   			DateParameter dateParam = new DateParameter();
-	   			Date currentTime = new Date();
-	   			String format = o.getString("formattype");
-	   			SimpleDateFormat formatter = new SimpleDateFormat(format);
-	   			Calendar cal  =  Calendar.getInstance();
-	   			cal.setTime(currentTime);
-	   			cal.add(Calendar.DATE,-1);
-	   			String dateString = formatter.format(cal.getTime());
-//	   			SimpleDateFormat formatter = new SimpleDateFormat(format);
-//	   			String dateString = formatter.format(currentTime);
-	   			dateParam.setDate(dateString);
-	   			dateParam.setFormat(format);
-	   			dp.setDefaultDate(dateParam);
-	   			paramValue.add(dateString);
-	   		} else if(componetType.equals("list")) {
-	   			JSONObject defaultDefine = o.getJSONObject("defalutDefine");
-	   			String dk = defaultDefine.getString("key");
-	   			String dv = defaultDefine.getString("value");
-	   			ListParameter lp = new ListParameter();
-	   			lp.setKey(dk);
-	   			lp.setValue(dv);
-	   			dp.setDefaultListValue(lp);
-	   			paramValue.add(dk);
-	   		} else if(componetType.equals("Tree")) {
-	   			
-	   		}
-	   		dpList.add(dp);
-	    }
-	      GridData data = SQLExecutor.execute(ds, paramSql, paramValue);
-	      pd.setGridData(data);
-	      pd.setDefaultParameters(dpList);
-	      return pd;
-	    	//return SQLExecutor.execute(ds, bizView.getDefineJSON());
-    }
     
     public Chart saveChart(Chart chart) {
 		chart.setId(DomainType.CR.getDomainIDPrefix() + chart.getName());
@@ -246,36 +174,37 @@ public class MetaDataService  {
     	       return cd;
     }
     
-    public ParamGridData getTableData(String tableID,String JSONParam) {
-	       DataTable table = dataTableRepository.findOne(tableID);
-	       String bizViewId = table.getBizViewId();
-	       ParamGridData pd = new ParamGridData();
-	       if(StringUtil.isNullOrEmpty(JSONParam)) {
-	    	   		pd = getParamGridData(bizViewId);		 
-			} else {
-				pd = updateBizViewData(bizViewId,JSONParam);
-			}
-	       return pd;
-    }
-    public TableData getReptTable(String tableID,String portletID,String JSONparam) {
-    	 	 DataTable dt = getTable(tableID);
-    	 	 ParamGridData gd = getTableData(tableID,JSONparam);
-		 TableData td = new TableData(dt);
-		 td.setData(gd);
-		 td.setPortletID(portletID);
-	     return td;
-    }
+//    public ParamGridData getTableData(String tableID,String JSONParam) {
+//	       DataTable table = dataTableRepository.findOne(tableID);
+//	       String bizViewId = table.getBizViewId();
+//	       ParamGridData pd = new ParamGridData();
+//	       if(StringUtil.isNullOrEmpty(JSONParam)) {
+//	    	   		pd = getParamGridData(bizViewId);		 
+//			} else {
+//				pd = updateBizViewData(bizViewId,JSONParam);
+//			}
+//	       return pd;
+ //   }
+//    public TableData getReptTable(String tableID,String portletID,String JSONparam) {
+//    	 	 DataTable dt = getTable(tableID);
+//    	 	 ParamGridData gd = getTableData(tableID,JSONparam);
+//		 TableData td = new TableData(dt);
+//		 td.setData(gd);
+//		 td.setPortletID(portletID);
+//	     return td;
+//    }
     
-    /* 根据defineJSON获取报表数据
+    /* 根据defineJSON获取报表数据(不填充控件候选值列表)
      * globalFilter:[{name:名称
 			alias:别名
 			type:类型
 			value:过滤值
 			related:[{chartId: , field: , mark:}]}] 关联字段：图表ID，字段名，符号
      */
-    public ReportData previewReportData(String reportDefine) {
+    public ReportData updateReportData(String reportDefine) {
 //		 Report r = getReport(reportID);
 //		 String defineJSON = r.getDefineJSON();
+//    	 String defaultDefine = setDefaultDateInFilter(reportDefine);
 		 ReportData rd = new ReportData();
 		 JSONObject o = (JSONObject) JSON.parse(reportDefine);
 		 JSONArray globalFilter = o.getJSONObject("header").getJSONArray("globalFilter");
@@ -309,21 +238,37 @@ public class MetaDataService  {
 			 }
 			 
 		 }
+		 //Map<String,List<String>> standBy = getAllReportStandByValue(globalFilter);
 		 rd.setChartData(chartData);
 		 rd.setTableData(tableData);
+		 //rd.setDefineJSON(defaultDefine);
 		 return rd;
 	}
     /* 根据报表ID获取报表数据
      * 
      */
-    public ReportData getReportData(String reportID) {
+    public ReportData initReportById(String reportID) {
 		 Report r = getReport(reportID);
 		 String defineJSON = r.getDefineJSON();
-		 String defaultDefine = setDefaultDateInFilter(defineJSON);
-		 ReportData rd = previewReportData(defaultDefine);
-
+		 ReportData rd = initReportByJSON(defineJSON);
+		 rd.setId(r.getId());
+		 rd.setName(r.getName());
+		 rd.setAlias(r.getAlias());
 		 return rd;
     }
+    /* 根据报表根据defineJSON获取报表数据(填充控件候选值列表)
+     * 
+     */
+    public ReportData initReportByJSON(String defineJSON) {
+		 String defaultDefine = setDefaultDateInFilter(defineJSON); //对报表的defineJSON添加时间默认值
+		 JSONObject o = (JSONObject) JSON.parse(defaultDefine);
+		 JSONArray globalFilter = o.getJSONObject("header").getJSONArray("globalFilter");
+		 Map<String,List<String>> standBy = getAllReportStandByValue(globalFilter); 
+		 ReportData rd = updateReportData(defaultDefine);
+		 rd.setDefineJSON(defaultDefine);
+		 rd.setStandbyValueMap(standBy);
+		 return rd;
+  }
     
 	public Chart getChart(String chartID) {
 		Chart chart = chartRespository.findOne(chartID);
@@ -334,130 +279,7 @@ public class MetaDataService  {
 		DataTable table = dataTableRepository.findOne(tableID);	
 		return table;
 	}
-	/*
-	 * 获取参数候选值
-	 */
-	public ParameterValue getParameterValue(String paramId) {
-		Parameter param = parameterRepository.findOne(paramId);
-		String defineJSON = param.getDefineJSON();
-		JSONObject o = (JSONObject) JSON.parse(defineJSON);
-		String componetType = o.getString("componenttype");
-		JSONObject standbyDefine = o.getJSONObject("standbyDefine");
-		String valueSource = standbyDefine.getString("valueSource");
-		ParameterValue pv = new ParameterValue();
-		if(componetType.equals("list")) {  
-			List<ListParameter> listValues = new ArrayList<ListParameter>();
-   			if(valueSource.equals("static")) {
-   				JSONArray valueList = standbyDefine.getJSONArray("values");
-   				for(int i=0; i<valueList.size(); i++) {
-   					ListParameter lp = new ListParameter();
-   					JSONObject value = valueList.getJSONObject(i);
-   					lp.setKey(value.getString("key"));
-   					lp.setValue(value.getString("value"));
-   					listValues.add(lp);
-   				}
-   				pv.setStandByList(listValues);
-   			} else {
-   				String dataSourceId = standbyDefine.getString("dataSourceID");
-   		    		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
-   				JSONArray valueList = standbyDefine.getJSONArray("values");
-   				String sql = valueList.getJSONObject(0).getString("value");
-   				GridData gd = SQLExecutor.execute(ds, sql);
-   				int rows = gd.getRowsCount();
-   				for(int i=0; i<rows; i++) {
-   					ListParameter lp = new ListParameter();
-   					String key = gd.get(i, 0).getDisplayValue();
-   					String value = gd.get(i, 1).getDisplayValue();
-   					lp.setKey(key);
-   					lp.setValue(value);
-   					listValues.add(lp);
-   				}
-   				pv.setStandByList(listValues);
-   			}
-   		} else if(componetType.equals("Tree")) {
-
-   		} 
-		return pv;
-		
-	}
-	/*
-	 * 查询器获取参数更新后的数据
-	 */
-	public ParamGridData updateBizViewData(String bizViewId,String JSONparam) {
-		JSONObject paramSelected = (JSONObject) JSON.parse(JSONparam);
-		BizView bizView = bizViewRespository.findOne(bizViewId);
-    		String dataSourceId = bizView.getDataSourceId();
-    		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
-    		String sqlJSON = bizView.getDefineJSON();
-    		List<Object> paramValues = new ArrayList<Object>();
-    		ParamGridData pd = new ParamGridData();
-
-    	    Matcher matcher = matchRegEx(sqlJSON);
-    	    
-    	    while(matcher.find()) { 
-    	    		String pStr = matcher.group();
-    	    		int len = pStr.length();
-    	    		String pId = pStr.substring(1, len-1);
-    	    		String pv = paramSelected.getString(pId);
-    	    		paramValues.add(pv);
-    	   } 
-    	    String paramSql = matcher.replaceAll("?"); 
-    	    GridData gd = SQLExecutor.execute(ds, paramSql, paramValues);
-    	    pd.setGridData(gd);
-		return pd;
-	}
 	
-	/*
-	 * 封装默认参数对象
-	 */
-	public DefaultParameter getDefaultParameter(String parameterId) {
-		DefaultParameter dp = new DefaultParameter();
-		Parameter param = parameterRepository.findOne(parameterId);
-		String paramDefine = param.getDefineJSON();
-		JSONObject o = (JSONObject) JSON.parse(paramDefine);
-		String componetType = o.getString("componenttype");
-		dp.setParamId(parameterId);
-		dp.setParamType(componetType);
-		if(componetType.equals("date")) {  //日期控件默认值设置为当日/当月/当年
-			DateParameter dateParam = new DateParameter();
-			Date currentTime = new Date();
-			String format = o.getString("formattype");
-			SimpleDateFormat formatter = new SimpleDateFormat(format);
-			String dateString = formatter.format(currentTime);
-			dateParam.setDate(dateString);
-			dateParam.setFormat(format);
-			dp.setDefaultDate(dateParam);
-		} else if(componetType.equals("list")) {
-			JSONObject defaultDefine = o.getJSONObject("defalutDefine");
-			String dk = defaultDefine.getString("key");
-			String dv = defaultDefine.getString("value");
-			ListParameter lp = new ListParameter();
-			lp.setKey(dk);
-			lp.setValue(dv);
-			dp.setDefaultListValue(lp);
-		} else if(componetType.equals("Tree")) {
-			
-		}
-		return dp;
-	}
-	/*
-	 * 解析获取查询器的参数对象
-	 */
-	public List<DefaultParameter> getParamets(String bizViewId){
-		BizView bizView = bizViewRespository.findOne(bizViewId);
-    		String sqlJSON = bizView.getDefineJSON();
-    		List<DefaultParameter> dpList = new ArrayList<DefaultParameter>();
-    	    Matcher matcher = matchRegEx(sqlJSON);
-    	    while(matcher.find()) { 
-    	    		String pStr = matcher.group();
-    	    		int len = pStr.length();
-    	    		String pId = pStr.substring(1, len-1);
-    	    		dpList.add(getDefaultParameter(pId));
-    	   } 
-    	    return dpList;
-	}
-	
-
 	public List<TreeNode> getFields(Connection conn, String schema, String tableName) throws SQLException{
 		List<TreeNode> fieldList = new ArrayList<TreeNode>(); 
 		ResultSet rs = conn.getMetaData().getColumns(conn.getCatalog(), schema, tableName, "%");
@@ -568,42 +390,42 @@ public class MetaDataService  {
 	public GridData getBizViewData(String bizViewId,String pageSize) {
 		BizView bv = bizViewRespository.findOne(bizViewId);
 		String dateSourceId = bv.getDataSourceId();
-		String bizViewSql = bv.getDefineJSON();
-		List<BizViewColumn> columnList = bizViewColumRepository.findColumnsNotAggregation(bizViewId);
-		StringBuffer sqlStatementBuffer = new StringBuffer("select ");
-		for(int i=0; i<columnList.size();i++) {
-			String name = columnList.get(i).getColumnName();
-			String alias = columnList.get(i).getColumnAlias();
-			String expression = columnList.get(i).getExpression();
-			int category = columnList.get(i).getCategory();
-			if(i==0) {
-				if(category == 0) {
-					sqlStatementBuffer.append(name);
-					sqlStatementBuffer.append(" as ");
-					sqlStatementBuffer.append(alias);		
-				} else {
-					sqlStatementBuffer.append(expression);
-					sqlStatementBuffer.append(" as ");
-					sqlStatementBuffer.append(alias);
-				}
-			} else {
-				if(category == 0) {
-					sqlStatementBuffer.append(", ");
-					sqlStatementBuffer.append(name);
-					sqlStatementBuffer.append(" as ");
-					sqlStatementBuffer.append(alias);		
-				} else {
-					sqlStatementBuffer.append(", ");
-					sqlStatementBuffer.append(expression);
-					sqlStatementBuffer.append(" as ");
-					sqlStatementBuffer.append(alias);
-				}
-			}
-		}
-		sqlStatementBuffer.append(" from (");
-		sqlStatementBuffer.append(bizViewSql);
-		sqlStatementBuffer.append(") t1");
-		String sqlStament = sqlStatementBuffer.toString();
+//		String bizViewSql = bv.getDefineJSON();
+//		List<BizViewColumn> columnList = bizViewColumRepository.findColumnsNotAggregation(bizViewId);
+//		StringBuffer sqlStatementBuffer = new StringBuffer("select ");
+//		for(int i=0; i<columnList.size();i++) {
+//			String name = columnList.get(i).getColumnName();
+//			String alias = columnList.get(i).getColumnAlias();
+//			String expression = columnList.get(i).getExpression();
+//			int category = columnList.get(i).getCategory();
+//			if(i==0) {
+//				if(category == 0) {
+//					sqlStatementBuffer.append(name);
+//					sqlStatementBuffer.append(" as ");
+//					sqlStatementBuffer.append(alias);		
+//				} else {
+//					sqlStatementBuffer.append(expression);
+//					sqlStatementBuffer.append(" as ");
+//					sqlStatementBuffer.append(alias);
+//				}
+//			} else {
+//				if(category == 0) {
+//					sqlStatementBuffer.append(", ");
+//					sqlStatementBuffer.append(name);
+//					sqlStatementBuffer.append(" as ");
+//					sqlStatementBuffer.append(alias);		
+//				} else {
+//					sqlStatementBuffer.append(", ");
+//					sqlStatementBuffer.append(expression);
+//					sqlStatementBuffer.append(" as ");
+//					sqlStatementBuffer.append(alias);
+//				}
+//			}
+//		}
+//		sqlStatementBuffer.append(" from (");
+//		sqlStatementBuffer.append(bizViewSql);
+//		sqlStatementBuffer.append(") t1");
+		String sqlStament = getBizViewStatment(bizViewId);
 		GridData gd = getBizViewData(dateSourceId,sqlStament,pageSize);
 		return gd;
 	}
@@ -684,6 +506,9 @@ public class MetaDataService  {
 		}
 		bizViewColumRepository.delete(bizViewColumns);
 	}
+	/*
+	 * 预览图表数据
+	 */
 	public GridData previewChartData(String bizViewId, String filterJSON) {
 		BizView bv = bizViewRespository.findOne(bizViewId);
 		String dateSourceId = bv.getDataSourceId();
@@ -693,7 +518,7 @@ public class MetaDataService  {
 		return gd;
 	}
 	/*
-	 * 获取图表数据
+	 * 获取图表SQL
 	 * filterJSON:{
 	 *  value:[columnName],(必须字段)
 	 *  groupby:columnName/null(卡式图表不需要groupby字段，其余图表必须),
@@ -960,24 +785,36 @@ public class MetaDataService  {
 	}
 	
 	/* 
-     * 获取报表全局过滤（单选和多选）的候选值列表
+     * 获取报表全局过滤（单选和多选）的候选值列表(查看报表时需要获取全部单选和多选控件的候选值列表)
      */ 
-	public Map<String,List<String>> getReportStandByValue(JSONArray gfList){
+	public Map<String,List<String>> getAllReportStandByValue(JSONArray gfList){
 		Map<String,List<String>> result = new HashMap<String,List<String>>();
 		for(int i=0; i<gfList.size(); i++) {
 			JSONObject o = gfList.getJSONObject(i);
 			String otype = o.getString("type");
 			if (otype.equals("singleSelect") || otype.equals("multiSelect")) {	//控件类型为单选或者多选时要获取该字段的候选值列表供用户选择
-				JSONObject related = o.getJSONArray("related").getJSONObject(0);  //以第一个关联字段为准获取该字段的候选值列表
-				String chartId = related.getString("chartId");
+				JSONArray relatedList = o.getJSONArray("related");
+				List<String> standby = getReportStandByValue(relatedList);
+				JSONObject related = relatedList.getJSONObject(0);  
 				String field = related.getString("field");
-				Chart chart = chartRespository.findOne(chartId);
-				String bizViewId = chart.getBizViewId();
-				List<String> standby =  getStandByValue(bizViewId,field);
 				result.put(field, standby);
 			}
 		}
 		return result;
+	}
+	public List<String> getReportStandByValue(JSONArray relatedList){
+		JSONObject related = relatedList.getJSONObject(0);  //以第一个关联字段为准获取该字段的候选值列表
+		String chartId = related.getString("chartId");
+		String field = related.getString("field");
+		Chart chart = chartRespository.findOne(chartId);
+		String bizViewId = chart.getBizViewId();
+		List<String> standby =  getStandByValue(bizViewId,field);
+		return standby;
+	}
+	public List<String> getReportStandByValue(String relatedJSON){
+		JSONArray relatedList = JSON.parseArray(relatedJSON);
+		List<String> standby =  getReportStandByValue(relatedList);
+		return standby;
 	}
 	/*合并全局过滤条件和图表私有过滤条件
      * globalFilter:[{name:名称
@@ -1025,28 +862,28 @@ public class MetaDataService  {
 	 * 获取默认日期值
 	 * 日类型：2018-05-07
 	 * 月类型：2018-05
-	 * 自定义类型：前端用户自定义format
+	 * 自定义类型：前端用户自定义
 	 */
-	public String getDefaultDate(String dateType,int forward,String format) {
+	public String getDefaultDate(String dateType,int forward,String format,String value) {
 			Date currentTime = new Date();
 			String dayFormat = "yyyy-MM-dd";
 			String monFormat = "yyyy-MM";
-			String userFormat = format;
+			//String userFormat = format;
 			Calendar cal  =  Calendar.getInstance();
 			cal.setTime(currentTime);
 			String dateString;
-			if(dateType == "DateByDay") {
+			if(dateType.equals("DateByDay")) {
 				SimpleDateFormat formatter = new SimpleDateFormat(dayFormat);
 				cal.add(Calendar.DATE,-forward);
 				dateString = formatter.format(cal.getTime());
-			} else if(dateType == "DateByMonth")  {
+			} else if(dateType.equals("DateByMonth"))  {
 				SimpleDateFormat formatter = new SimpleDateFormat(monFormat);
 				cal.add(Calendar.MONTH,-forward);
 				dateString = formatter.format(cal.getTime());
 			} else {
-				SimpleDateFormat formatter = new SimpleDateFormat(userFormat);
+				//SimpleDateFormat formatter = new SimpleDateFormat(userFormat);
 				//cal.add(Calendar.MONTH,-forward);
-				dateString = formatter.format(cal.getTime());
+				dateString = value;
 			}
 			return dateString;
 	}
@@ -1064,13 +901,14 @@ public class MetaDataService  {
 		for(int i=0; i<gfList.size(); i++) {
 			JSONObject o = gfList.getJSONObject(i);
 			String otype = o.getString("type");
+			String value = o.getString("value");
 			if(!StringUtil.isNullOrEmpty(otype)) {
 				if (otype.equals("DateByDay") || otype.equals("DateByMonth")) {
-					String defaultDate = getDefaultDate(otype,1,null); 
+					String defaultDate = getDefaultDate(otype,1,null,value); 
 					o.put("value", defaultDate);
 				} else if(otype.equals("DateByUser")) {
 					String format = o.getString("value");
-					String defaultDate = getDefaultDate(otype,0,format); 
+					String defaultDate = getDefaultDate(otype,0,format,value); 
 					o.put("value", defaultDate);
 				}
 			}
