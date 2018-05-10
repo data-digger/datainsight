@@ -549,11 +549,11 @@ public class MetaDataService  {
 		String havingClause = whereMap.get("havingClause");
 		String selectClaus = getSelectClause(groupby,valueObjectList,bizViewId);
 		
-		String finalClause = "("+bq;
+		String finalClause = "("+bq+") t";
 		if (!whereClause.isEmpty()) {
 			finalClause = finalClause + " where" + whereClause;
 		}
-		finalClause = finalClause+") t";
+		//finalClause = finalClause+") t";
 		
 		
 		finalClause = selectClaus + finalClause;
