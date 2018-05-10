@@ -1,5 +1,7 @@
 package com.datadigger.datainsight.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,6 +47,12 @@ public class ReportController {
     public ReportData updateReportData(String reportDefine) {
     	   
     	 return metaDataService.updateReportData(reportDefine);
+    	 
+    }
+    @RequestMapping("/report/getStandBy")
+    public List<String> getReportStandByValue(String relatedJSON) {
+    	   
+    	 return metaDataService.getReportStandByValue(relatedJSON);
     	 
     }
 }
