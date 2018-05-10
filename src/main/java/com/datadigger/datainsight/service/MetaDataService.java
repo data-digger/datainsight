@@ -803,14 +803,19 @@ public class MetaDataService  {
 		return result;
 	}
 	public List<String> getReportStandByValue(JSONArray relatedList){
-		JSONObject related = relatedList.getJSONObject(0);  //以第一个关联字段为准获取该字段的候选值列表
-		String chartId = related.getString("chartId");
-		String field = related.getString("field");
-		Chart chart = chartRespository.findOne(chartId);
-		String bizViewId = chart.getBizViewId();
-		List<String> standby =  getStandByValue(bizViewId,field);
-		return standby;
+		if(relatedList.size()==0) {  //当关联字段为空时返回空数组
+			return new ArrayList<String>();
+		} else {
+			JSONObject related = relatedList.getJSONObject(0);  //以第一个关联字段为准获取该字段的候选值列表
+			String chartId = related.getString("chartId");
+			String field = related.getString("field");
+			Chart chart = chartRespository.findOne(chartId);
+			String bizViewId = chart.getBizViewId();
+			List<String> standby =  getStandByValue(bizViewId,field);
+			return standby;
+		}
 	}
+		
 	public List<String> getReportStandByValue(String relatedJSON){
 		JSONArray relatedList = JSON.parseArray(relatedJSON);
 		List<String> standby =  getReportStandByValue(relatedList);
