@@ -43,6 +43,8 @@ import com.datadigger.datainsight.domain.DomainType;
 import com.datadigger.datainsight.domain.Report;
 import com.datadigger.datainsight.domain.DataTable;
 import com.datadigger.datainsight.domain.TableData;
+import com.datadigger.datainsight.exception.DataDiggerErrorCode;
+import com.datadigger.datainsight.exception.DataDiggerException;
 import com.datadigger.datainsight.domain.Parameter;
 import com.datadigger.datainsight.domain.BizViewColumn;
 import com.datadigger.datainsight.query.SQLExecutor;
@@ -639,26 +641,30 @@ public class MetaDataService  {
 	 */
 	public String formatValue(JSONObject where,String mark) {
 		String value = "";
-		if(mark.equals("IN") || mark.equals("NOT IN")) {
-			JSONArray inValues = where.getJSONArray("value");
-			StringBuffer inBuffer = new StringBuffer("(");
-			for(int k=0; k<inValues.size();k++) {
-				String inValue = inValues.getString(k);
-				if(k == 0) {
-					inBuffer.append(formatValue(inValue));
-				} else {
-					inBuffer.append(",");
-					inBuffer.append(formatValue(inValue));
+		try {
+			if(mark.equals("IN") || mark.equals("NOT IN")) {
+				JSONArray inValues = where.getJSONArray("value");
+				StringBuffer inBuffer = new StringBuffer("(");
+				for(int k=0; k<inValues.size();k++) {
+					String inValue = inValues.getString(k);
+					if(k == 0) {
+						inBuffer.append(formatValue(inValue));
+					} else {
+						inBuffer.append(",");
+						inBuffer.append(formatValue(inValue));
+					}
 				}
+				inBuffer.append(")");
+				value = inBuffer.toString();
+			} else {
+				StringBuffer inBuffer = new StringBuffer();
+				inBuffer.append(formatValue(where.getString("value")));
+				value = inBuffer.toString();
 			}
-			inBuffer.append(")");
-			value = inBuffer.toString();
-		} else {
-			StringBuffer inBuffer = new StringBuffer();
-			inBuffer.append(formatValue(where.getString("value")));
-			value = inBuffer.toString();
+			return value;
+		}catch(Exception e) {
+			throw new DataDiggerException(DataDiggerErrorCode.UNKOWN_ERROR,e).setDetail("where:" + where.toString() + ";mark:" + mark);
 		}
-		return value;
 	}
 	/*
 	 * 格式化过滤值 1 => '1'
