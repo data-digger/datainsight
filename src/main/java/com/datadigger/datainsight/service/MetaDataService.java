@@ -643,20 +643,42 @@ public class MetaDataService  {
 		String value = "";
 		try {
 			if(mark.equals("IN") || mark.equals("NOT IN")) {
-				JSONArray inValues = where.getJSONArray("value");
-				StringBuffer inBuffer = new StringBuffer("(");
-				for(int k=0; k<inValues.size();k++) {
-					String inValue = inValues.getString(k);
-					if(k == 0) {
-						inBuffer.append(formatValue(inValue));
-					} else {
-						inBuffer.append(",");
-						inBuffer.append(formatValue(inValue));
+				Object obj = where.get("value");
+				if(obj instanceof String) {
+					StringBuffer inBuffer = new StringBuffer("(");
+					inBuffer.append(formatValue(where.getString("value")));
+					inBuffer.append(")");
+					value = inBuffer.toString();
+					
+				}else if (obj instanceof JSONArray) {
+					JSONArray inValues = where.getJSONArray("value");
+					StringBuffer inBuffer = new StringBuffer("(");
+					for(int k=0; k<inValues.size();k++) {
+						String inValue = inValues.getString(k);
+						if(k == 0) {
+							inBuffer.append(formatValue(inValue));
+						} else {
+							inBuffer.append(",");
+							inBuffer.append(formatValue(inValue));
+						}
 					}
+					inBuffer.append(")");
+					value = inBuffer.toString();
 				}
-				inBuffer.append(")");
-				value = inBuffer.toString();
-			} else {
+			} else if (mark.equals("=")){
+				Object obj = where.get("value");
+				if(obj instanceof String) {
+					String temp = (String)obj;
+					if(temp.indexOf('[')>=0) {//处理 ["ABC"]类型为ABC
+						temp = temp.substring(2, temp.length()-2);
+					}
+					StringBuffer inBuffer = new StringBuffer();
+					inBuffer.append(formatValue(temp));
+					value = inBuffer.toString();
+				}else if(obj instanceof JSONArray) {
+					throw new  DataDiggerException(DataDiggerErrorCode.UNKOWN_ERROR).setDetail("不支持的格式");
+				}
+			}else {
 				StringBuffer inBuffer = new StringBuffer();
 				inBuffer.append(formatValue(where.getString("value")));
 				value = inBuffer.toString();
