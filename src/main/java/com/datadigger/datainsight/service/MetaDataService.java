@@ -949,4 +949,14 @@ public class MetaDataService  {
 		}
 		return rdo.toJSONString();
 	}
+
+	public ParameterValue getParameterValue(String paramId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public ParamGridData getTableData(String tableId, String jSONParam) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

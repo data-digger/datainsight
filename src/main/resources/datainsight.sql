@@ -46,3 +46,68 @@ CREATE TABLE `t_price` (
   `update_time` date NOT NULL,
   PRIMARY KEY (`cname`,`update_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `t_department` (
+  `depid` varchar(255) NOT NULL,
+  `depname` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `t_fact_index` (
+  `depid` varchar(255) NOT NULL,
+  `indid` varchar(255) NOT NULL,
+  `indname` varchar(255) NOT NULL,
+  `indval` decimal(5,2) DEFAULT NULL,
+  `upd_time` date NOT NULL,
+  PRIMARY KEY (`depid`,`indid`,`upd_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `demo_db`.`t_department`
+(`depid`,
+`depname`)
+VALUES
+('bak001',
+ '北京分行'),
+ ('bak002',
+ '深圳分行'),
+('bak003',
+ '上海分行');
+ 
+INSERT INTO `demo_db`.`t_fact_index`
+(`depid`,
+`indid`,
+`indname`,
+`indval`,
+`upd_time`)
+VALUES
+('bak001',
+ 'I001',
+ '存款余额',
+ '100203',
+ '2018-01-01'),
+ ('bak001',
+ 'I002',
+ '贷款款余额',
+ '110202',
+ '2018-01-01'),
+ ('bak002',
+ 'I001',
+ '存款余额',
+ '101232',
+ '2018-01-01'),
+ ('bak002',
+ 'I002',
+ '贷款款余额',
+ '111032',
+ '2018-01-01'),
+ ('bak003',
+ 'I001',
+ '存款余额',
+ '102032',
+ '2018-01-01'),
+ ('bak003',
+ 'I002',
+ '贷款款余额',
+ '112032',
+ '2018-01-01')
+ ;
+
