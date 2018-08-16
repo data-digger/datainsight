@@ -16,6 +16,7 @@ public class ExceptionAdvisor {
     @ExceptionHandler(value = Exception.class)
     @ResponseStatus
     public Result exceptionHandler(Exception e) {
+    	e.printStackTrace();
         return new Result(false, e.getMessage());
     }
 
@@ -23,12 +24,14 @@ public class ExceptionAdvisor {
     @ExceptionHandler(value = NullPointerException.class)
     @ResponseStatus
     public Result nullPointerExceptionHandler(NullPointerException e) {
+    	e.printStackTrace();
         return new Result(false, "空指針异常:" +e.getMessage());
     }
     
     @ResponseBody
     @ExceptionHandler(value = DataDiggerException.class)
     public Result formatCheckExceptionHandler(DataDiggerException e) {
+    	e.printStackTrace();
         return new Result(false, e.getDetail());
     }
 

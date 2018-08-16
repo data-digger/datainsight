@@ -43,10 +43,15 @@ import com.datadigger.datainsight.domain.DomainType;
 import com.datadigger.datainsight.domain.Report;
 import com.datadigger.datainsight.domain.DataTable;
 import com.datadigger.datainsight.domain.TableData;
+
 import com.datadigger.datainsight.expression.Expression;
 import com.datadigger.datainsight.expression.IExpressionItem;
 import com.datadigger.datainsight.param.ParamHandler;
 import com.datadigger.datainsight.param.ParamValue;
+
+import com.datadigger.datainsight.exception.DataDiggerErrorCode;
+import com.datadigger.datainsight.exception.DataDiggerException;
+
 import com.datadigger.datainsight.domain.Parameter;
 import com.datadigger.datainsight.domain.ParameterData;
 import com.datadigger.datainsight.domain.BizViewColumn;
@@ -649,26 +654,52 @@ public class MetaDataService  {
 	 */
 	public String formatValue(JSONObject where,String mark) {
 		String value = "";
-		if(mark.equals("IN") || mark.equals("NOT IN")) {
-			JSONArray inValues = where.getJSONArray("value");
-			StringBuffer inBuffer = new StringBuffer("(");
-			for(int k=0; k<inValues.size();k++) {
-				String inValue = inValues.getString(k);
-				if(k == 0) {
-					inBuffer.append(formatValue(inValue));
-				} else {
-					inBuffer.append(",");
-					inBuffer.append(formatValue(inValue));
+		try {
+			if(mark.equals("IN") || mark.equals("NOT IN")) {
+				Object obj = where.get("value");
+				if(obj instanceof String) {
+					StringBuffer inBuffer = new StringBuffer("(");
+					inBuffer.append(formatValue(where.getString("value")));
+					inBuffer.append(")");
+					value = inBuffer.toString();
+					
+				}else if (obj instanceof JSONArray) {
+					JSONArray inValues = where.getJSONArray("value");
+					StringBuffer inBuffer = new StringBuffer("(");
+					for(int k=0; k<inValues.size();k++) {
+						String inValue = inValues.getString(k);
+						if(k == 0) {
+							inBuffer.append(formatValue(inValue));
+						} else {
+							inBuffer.append(",");
+							inBuffer.append(formatValue(inValue));
+						}
+					}
+					inBuffer.append(")");
+					value = inBuffer.toString();
 				}
+			} else if (mark.equals("=")){
+				Object obj = where.get("value");
+				if(obj instanceof String) {
+					String temp = (String)obj;
+					if(temp.indexOf('[')>=0) {//处理 ["ABC"]类型为ABC
+						temp = temp.substring(2, temp.length()-2);
+					}
+					StringBuffer inBuffer = new StringBuffer();
+					inBuffer.append(formatValue(temp));
+					value = inBuffer.toString();
+				}else if(obj instanceof JSONArray) {
+					throw new  DataDiggerException(DataDiggerErrorCode.UNKOWN_ERROR).setDetail("不支持的格式");
+				}
+			}else {
+				StringBuffer inBuffer = new StringBuffer();
+				inBuffer.append(formatValue(where.getString("value")));
+				value = inBuffer.toString();
 			}
-			inBuffer.append(")");
-			value = inBuffer.toString();
-		} else {
-			StringBuffer inBuffer = new StringBuffer();
-			inBuffer.append(formatValue(where.getString("value")));
-			value = inBuffer.toString();
+			return value;
+		}catch(Exception e) {
+			throw new DataDiggerException(DataDiggerErrorCode.UNKOWN_ERROR,e).setDetail("where:" + where.toString() + ";mark:" + mark);
 		}
-		return value;
 	}
 	/*
 	 * 格式化过滤值 1 => '1'
@@ -931,6 +962,7 @@ public class MetaDataService  {
 		}
 		return rdo.toJSONString();
 	}
+
 	
 	public String getExpressionText(String expStr,boolean isInit,JSONObject valueObject) {
 		Expression exp = new Expression(expStr);
@@ -1036,5 +1068,16 @@ public class MetaDataService  {
 //		
 //	}
 	
-	
+
+
+//	public ParameterValue getParameterValue(String paramId) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+//
+//	public ParamGridData getTableData(String tableId, String jSONParam) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+
 }

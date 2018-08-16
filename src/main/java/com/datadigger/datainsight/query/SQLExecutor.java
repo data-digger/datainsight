@@ -45,7 +45,7 @@ public class SQLExecutor {
 	}
 	
 	
-	public static GridData execute(DataSource ds, String sql, int maxRows, boolean format,List<Object> paramList) {
+	public static GridData execute(DataSource ds, String sql, int maxRows, boolean format,List<Object> paramList) throws DataDiggerException {
 		GridData result = new GridData();
 
 		Connection conn = null;
