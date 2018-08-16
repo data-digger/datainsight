@@ -100,7 +100,7 @@ public class Expression implements IExpressionItem,Serializable{
 			}
 			
 		}
-		this.expressionText = this.getExpressionText();
+//		this.expressionText = this.getExpressionText();
 	}
 	
 	/**
@@ -419,9 +419,10 @@ public class Expression implements IExpressionItem,Serializable{
 				InnerParamProxy innerParamProxy = (InnerParamProxy)item;
 				String tmpId = innerParamProxy.getParamId();
 				boolean ignorable = innerParamProxy.isIgnorable();
-				Parameter tmpParam = null; //MetaDataRuntimeContext.getInstance().searchParameter(tmpId);
-				if (tmpParam == null)
-					continue;
+				paramIDs.add(tmpId);
+//				Parameter tmpParam = null; //MetaDataRuntimeContext.getInstance().searchParameter(tmpId);
+//				if (tmpParam == null)
+//					continue;
 
 				/*�����ڲ��ϲ�����������£������ײ����������⣬
 				 *���
@@ -513,14 +514,14 @@ public class Expression implements IExpressionItem,Serializable{
 //			if (item instanceof Function){
 //				((Function)item).setParametersValue(this.parametersValue);
 //			}
-//			else if (item instanceof InnerParamProxy){
-//				((InnerParamProxy)item).setParametersValue(this.parametersValue);
-//			}
+//			else 
+			if (item instanceof InnerParamProxy){
+				((InnerParamProxy)item).setParametersValue(this.parametersValue);
+			}
 //			else if (item instanceof BusinessViewBO){
 //				((BusinessViewBO)item).setParametersValue(this.parametersValue);
 //			}
-//			else 
-				if (item instanceof Expression){
+			else if (item instanceof Expression){
 				((Expression)item).setParametersValue(this.parametersValue);
 			}
 			

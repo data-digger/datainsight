@@ -1,0 +1,1632 @@
+package com.freequery.report;
+
+import java.io.InputStream;
+import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.servlet.http.HttpSessionBindingEvent;
+import javax.servlet.http.HttpSessionBindingListener;
+
+
+import org.apache.log4j.Logger;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import bof.BOFException;
+import bof.catalogtree.PurviewType;
+import bof.config.ISystemConfig;
+import bof.connectionpool.ConnectionPool;
+import bof.oltp.FreeQueryModule;
+import bof.param.IParameterPanel;
+import bof.pool.BusinessViewBOPool;
+import bof.pool.DBSQLResultStoreKey;
+import bof.pool.DBSQLResultStorePool;
+import bof.util.DBType;
+import bof.util.StringUtil;
+import bof.util.UUIDGenerator;
+import bof.util.ValueType;
+import bof.util.XmlUtility;
+
+import com.freequery.FreeQueryErrorCode;
+import com.freequery.catalogtree.FreeQueryCatalogTreeHelper;
+import com.freequery.client.simplereport.IParameterProxy;
+import com.freequery.client.simplereport.TempTablePool;
+import com.freequery.config.ConfigService;
+import com.freequery.config.ResAuditBO;
+import com.freequery.export.ExcelTemplateDefine;
+import com.freequery.expression.Expression;
+import com.freequery.expression.IExpressionItem;
+import com.freequery.expression.ParamValue;
+import com.freequery.metadata.AbstractFieldBO;
+import com.freequery.metadata.BusinessViewBO;
+import com.freequery.metadata.BusinessViewOutputFieldBO;
+import com.freequery.metadata.OutputParameter;
+import com.freequery.metadata.SQLPart;
+import com.freequery.querydata.CellData;
+import com.freequery.querydata.GridData;
+import com.freequery.querydata.store.DBSQLResultStore;
+import com.freequery.querydata.store.SQLResultStore;
+import com.freequery.querydata.store.ScheduledResultStore;
+import com.freequery.repository.FreeQueryDAOFactory;
+import com.freequery.repository.Parameter;
+import com.freequery.repository.Report;
+import com.freequery.statemanager.MetaDataRuntimeContext;
+import com.freequery.util.AggregateMethod;
+import com.freequery.util.CatalogElementType;
+import com.freequery.util.ComponentType;
+import com.freequery.util.ConditionGroupType;
+import com.freequery.util.QueryType;
+import com.freequery.util.ReportDumpHelper;
+import com.freequery.util.SQLPartType;
+import com.freequery.util.SysParams;
+
+/**
+ * 一个完整的报表XML定义示例： <?xml version="1.0" encoding="utf-8"?> <report
+ * style="清单表/交叉表"> <businessviews> <businessview id=""/> </businessviews>
+ * <output-fields> <field id="" alias="" position="行/列/页/分组/已排除"> <format>
+ * </format> </field> <field id="" alias="" position="行/列/页/分组/已排除"> <format/>
+ * </field> </output-fields> <params> <param id="" alias=""
+ * valuetype="NUM|STR|DATE|TIME|DATETIME" value=""/> <param id="" alias=""
+ * valuetype="NUM|STR|DATE|TIME|DATETIME" value=""/> </params> <orderbys>
+ * <orderby fieldid="" type="asc|desc"/> </orderbys> <simple-filter><!--enduser界面设置的字段分组过滤等信息-->
+ * <condition-group type="OR|AND|NOT OR|NOT AND"> <condition-group
+ * type="OR|AND|NOT OR|NOT AND"> <condition type="sql" value="a &lt;= 700 and b
+ * &gt; 300"/> </condition-group> <condition type="simple" fieldid="a"
+ * fieldtype="NUM|STR|DATE|TIME|DATETIME" operator="&gt;" value="'100'"/>
+ * <condition type="simple" fieldid="a" fieldtype="NUM|STR|DATE|TIME|DATETIME"
+ * operator="&lt;" value="200"/> </condition-group> </simple-filter> <filters><!--过滤器资源，包括可视化查询中的过滤器和全局的过滤器-->
+ * <filter id="" enabled="true|false"/> </filters> <top fieldid="a" value="10">
+ * </top> </report>
+ * 
+ */
+public class SimpleReportBO implements HttpSessionBindingListener,Serializable {
+	private static final Logger log = Logger.getLogger(SimpleReportBO.class);
+
+	public static final String EL_REPORT = "report";
+
+	public static final String EL_ORDERBYS = "orderbys";
+
+	public static final String EL_ORDERBY = "orderby";
+
+	public static final String EL_BUSINESSVIEW = "businessview";
+
+	public static final String EL_OUTPUT_FIELDS = "output-fields";
+
+	public static final String EL_SIMPLE_FILTER = "simple-filter";
+
+	public static final String EL_CONDITION_GROUP = "condition-group";
+
+	public static final String EL_CONDITION = "condition";
+
+	public static final String EL_FILTERS = "filters";
+
+	public static final String EL_FILTER = "filter";
+
+	public static final String EL_PARAMS = "params";
+
+	public static final String EL_PARAM = "param";
+
+	public static final String EL_CHARTS = "charts";
+
+	public static final String EL_CHART = "chart";
+
+	public static final String EL_TOP = "top";
+
+	public static final String EL_CLIENT_CONFIG = "client-config";
+
+	public static final String ATTR_NAME = "name";
+
+	public static final String EL_FIELD = "field";
+
+	public static final String ATTR_ID = "id";
+
+	public static final String ATTR_ALIAS = "alias";
+
+	public static final String ATTR_DESC = "desc";
+
+	public static final String ATTR_TYPE = "type";
+
+	public static final String ATTR_AUTO_REFRESH = "auto-refresh";
+
+	public static final String ATTR_LAYOUT = "layout";
+
+	public static final String ATTR_ROWS_PER_PAGE = "rowsPerPage";
+
+	private static final String EL_SUBTOTALS = "subtotals";
+
+	public static final String ATTR_RETRIEVE_COUNT = "retrieveCount";
+
+//	private BusinessViewBO businessView;
+
+	private ReportFieldList outputFields;
+
+	private ReportParamList params;
+
+	private OrderByList orderBys;
+
+	private SimpleFilter simpleFilter;
+
+	private Document doc;
+
+	private Element root;
+
+	private Element bizViewElem;
+
+	private Element outputFieldsElem;
+
+	private Element paramsElem;
+
+	private Element orderbysElem;
+
+	private Element simplefilterElem;
+
+	private Element filtersElem;
+
+	private Element topElem;
+
+	private Element chartsElement;
+
+//	private SQLResultStore store;
+
+	private int rowsPerPage = -1; // 每页数据行数
+
+	private int defaultRowsPerPage = -1; // 系统每页数据行数
+
+	private Report report;
+
+	private boolean isNewReport;
+
+	private String parentNodeId;
+
+	private List<Chart> charts = new ArrayList<Chart>();
+	
+	private boolean autoCloseAfterExported = false;	// 导出完成后自动释放
+	
+	private JumpStore colJumpStore;
+	
+	private String transmitPrepareSql = null;
+	
+	private ReportField transmitRelatedField = null;
+
+	private String transmitTempTableName;
+	
+	private GridData lastgrid;
+	
+	private boolean needRefresh = true;
+	
+	private IParameterProxy paramProxy;
+
+	/**
+	 * <?xml version=\"1.0\" encoding=\"utf-8\"?> <report> <businessviews>
+	 * <businessview/> </businessviews> <output-fields/> <params/> <orderbys/>
+	 * <simple-filter/> <filters/> <top/> </report>
+	 */
+	final String emptyShellXml = "<?xml version=\"1.0\" encoding=\"utf-8\"?><report><businessviews><businessview/></businessviews><output-fields/><params/><orderbys/><simple-filter/><filters/><top/><charts/></report>";
+
+	private SubtotalSetting subtotalSetting;
+
+	private IParameterPanel parameterPanel;
+	
+	private List<ReportParameterBO> newReportParameters = new ArrayList<ReportParameterBO>();
+	
+	private int retrieveCountSettingValue = -1; // 是否用count(*)获取行数. 1: 是, 0: 否, -1: 使用全局设置值
+
+	public String saveToXml() {
+		return XmlUtility.save(doc);
+	}
+
+	/**
+	 * 根据模板创建空的SimpleReport对象
+	 * 
+	 */
+	public SimpleReportBO() {
+		loadFromXml(emptyShellXml);
+		if (report == null) {
+			report = new Report();
+		}
+		report.setId(UUIDGenerator.generate());
+
+		isNewReport = true;
+//		store = DBSQLResultStore.newInstance();
+//		getStore().setView(getBusinessView());
+	}
+
+	private SQLResultStore store = null;
+	private SQLResultStore getStore() {
+		String reportType = report.getType();
+		if (report!=null && !StringUtil.isNullOrEmpty(reportType) && reportType.equals("STORED_REPORT")) {
+			if (store==null){
+				store = new ScheduledResultStore(getBusinessViewId(),buildViewState());
+			}
+			return store;
+		} else {
+			DBSQLResultStoreKey key = new DBSQLResultStoreKey(getBusinessViewId(),buildViewState());
+			return DBSQLResultStorePool.getInstance().borrowRequestObject(key);
+		}
+	}
+
+	/**
+	 * 根据数据库的ReportID初始化
+	 * 
+	 * @param reportID
+	 */
+	public SimpleReportBO(String reportID) {		
+//		ResAuditBO.getInstance().assertAudit(reportID);
+		report = FreeQueryDAOFactory.getReportDAO().load(reportID);
+		if (report == null) {
+			throw new BOFException(FreeQueryErrorCode.REPORT_NOT_EXIST)
+					.setDetail("报表ID:" + reportID);
+		}
+		FreeQueryModule.getInstance().getCatalogTreeModule().assertAccessible(reportID,
+				PurviewType.REF);
+
+//		if (report.getType().equals("STORED_REPORT")) {
+//			store = ScheduledResultStore.getInstance();
+//		} else {
+//			store = DBSQLResultStore.newInstance();
+//		}
+		
+		loadFromXml(report.getContent());
+		getBusinessView().assertAudit();
+		// if (report == null) {
+		// report = new Report();
+		// }
+		isNewReport = false;
+	}
+
+	public void loadFromXml(String xmlStr) {
+		loadFromXmlNode(XmlUtility.parse(xmlStr));
+	}
+
+	private void loadFromXmlNode(Document doc) {
+		this.doc = doc;
+		this.root = (Element) doc.getElementsByTagName(EL_REPORT).item(0);
+		bizViewElem = (Element) root.getElementsByTagName(EL_BUSINESSVIEW)
+				.item(0);
+		outputFieldsElem = (Element) root
+				.getElementsByTagName(EL_OUTPUT_FIELDS).item(0);
+		paramsElem = (Element) root.getElementsByTagName(EL_PARAMS).item(0);
+		orderbysElem = (Element) root.getElementsByTagName(EL_ORDERBYS).item(0);
+		simplefilterElem = (Element) root
+				.getElementsByTagName(EL_SIMPLE_FILTER).item(0);
+		filtersElem = (Element) root.getElementsByTagName(EL_FILTERS).item(0);
+		topElem = (Element) root.getElementsByTagName(EL_TOP).item(0);
+
+		outputFields = new ReportFieldList(outputFieldsElem);
+		params = new ReportParamList(paramsElem, this);
+		orderBys = new OrderByList(orderbysElem);
+		simpleFilter = new SimpleFilter(simplefilterElem);
+		setBusinessViewId(bizViewElem.getAttribute("id"));
+
+		NodeList nodeList = doc.getElementsByTagName(EL_CHARTS);
+		if (nodeList.getLength() != 0) {
+			chartsElement = (Element) nodeList.item(0);
+			nodeList = chartsElement.getElementsByTagName(EL_CHART);
+			for (int i = 0; i < nodeList.getLength(); i++)
+				this.charts.add(new Chart((Element) nodeList.item(i)));
+		}
+
+		nodeList = doc.getElementsByTagName(EL_SUBTOTALS);
+		if (nodeList != null && nodeList.getLength() > 0) {
+			this.subtotalSetting = new SubtotalSetting((Element) nodeList
+					.item(0));
+		}
+		String rowsPerPage = root.getAttribute(ATTR_ROWS_PER_PAGE);
+		if (!StringUtil.isNullOrEmpty(rowsPerPage))
+			this.rowsPerPage = Integer.parseInt(rowsPerPage);
+		String retrieveCount = root.getAttribute(ATTR_RETRIEVE_COUNT);
+		if (!StringUtil.isNullOrEmpty(retrieveCount))
+			this.retrieveCountSettingValue = Integer.parseInt(retrieveCount);
+	}
+
+	public String getBusinessViewId() {
+		return bizViewElem.getAttribute("id");
+	}
+
+	public void setBusinessViewId(String id) {
+		ResAuditBO.getInstance().assertAudit(id);
+		if (id == null || "".equals(id.trim()))
+			return;
+
+		bizViewElem.setAttribute(ATTR_ID, id);
+		FreeQueryModule.getInstance().getCatalogTreeModule()
+				.assertAccessible(id, PurviewType.REF);
+
+//		businessView = getBusinessView();
+
+		// if (businessView == null
+		// || !businessView.getId().equals(getBusinessViewId()))
+		// businessView = new BusinessViewBO(getBusinessViewId());
+	}
+
+	public ReportParameterBO createReportParam() {
+		return params.createReportParam();
+	}
+
+	public ReportParameterBO getParamById(String paramId) {
+		List<OutputParameter> bizViewParams = this.getBusinessView()
+				.getOutputParameters();
+		for (OutputParameter outputParam : bizViewParams) {
+			String outputParamId = outputParam.getId();
+			if(outputParamId.contains(".APPARAM.")) {
+				outputParamId = outputParamId.substring(outputParamId.indexOf(".APPARAM.") + 1);
+			}
+			if (outputParamId.equals(paramId))
+				return params.getReportParam(outputParam.getId());
+		}
+		return null;
+	}
+
+
+	public List<ReportParameterBO> getAllParams() {
+		List<ReportParameterBO> rtn = new ArrayList<ReportParameterBO>();
+		List<OutputParameter> bizViewParams = getBusinessView()
+				.getOutputParameters();
+		// 如果可视化查询中被应用的参数已经不存在了，那么分析中也应该删除这个参数。
+
+		List<ReportParameterBO> reportParams = params.toList();
+		this.newReportParameters.clear();
+		for (OutputParameter outputParam : bizViewParams) {
+			ReportParameterBO tmpReportParam = getReportParamByReferencedParam(
+					reportParams, outputParam);
+			if (tmpReportParam == null) {
+				tmpReportParam = createReportParam();
+//				tmpReportParam.setId("OutputParameter."
+//						+ this.getBusinessViewId() + "."
+//						+ outputParam.getName());
+				tmpReportParam.setId(outputParam.getId());
+				tmpReportParam.setAlias(outputParam.getAlias());
+				this.newReportParameters.add(tmpReportParam);// 为在查询中新增的参数设置当前值为默认值，否则参数嵌套的可能打开出错，参见BI5-4090
+//				tmpReportParam.setValue(outputParam.getDefaultValue()); 
+			}
+			rtn.add(tmpReportParam);
+		}
+
+		return rtn;
+	}
+	
+	public List<ReportParameterBO> getNewReportParameters(){
+		return this.newReportParameters;
+	}
+
+	private ReportParameterBO getReportParamByReferencedParam(
+			List<ReportParameterBO> reportParams, OutputParameter outputParam) {
+		for (ReportParameterBO reportParameterBO : reportParams) {
+			if (outputParam.equals(reportParameterBO.getReferencedParameter())) {
+				return reportParameterBO;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * 创建新的空字段。 该字段后续需要setId,setAlias,setFormat方法填充具体内容。
+	 * 
+	 * @return
+	 */
+	public ReportField createReportField(String fieldId) {
+		FreeQueryModule.getInstance().getCatalogTreeModule().assertAccessible(fieldId,
+				PurviewType.REF);
+		ReportField ret = outputFields.createReportField();
+		AbstractFieldBO field = MetaDataRuntimeContext.getInstance()
+				.searchAbstractFieldBO(fieldId);
+		ret.setId(fieldId);
+		String tmpAlias = field.getAlias();
+		if (tmpAlias == null || tmpAlias.trim().equals(""))
+			tmpAlias = field.getName();
+		ret.setAlias(tmpAlias);
+		ret.setFormat(field.getDataFormat());
+
+		// 根据可视化查询中的输出字段信息，设置默认的排序和聚合方式
+		ret.setAggregateMethod(getBusinessView().getOutputFieldById(fieldId)
+				.getAggregateMethod());
+		if(getBusinessView().getQueryType() == CatalogElementType.RAWSQL_BUSINESS_VIEW){
+			ret.setAliasFromRawQuery(getBusinessView().getOutputFieldById(fieldId).getAlias());
+		}
+		setOrderBy(fieldId, getBusinessView().getOutputFieldById(fieldId)
+				.getOrderby());
+
+		return ret;
+	}
+
+	public List<ReportField> getAllFields() {
+		return (List<ReportField>) outputFields.toList();
+	}
+
+	public ReportField getReportFieldById(String id) {
+		return outputFields.getReportField(id);
+	}
+
+	public void removeReportFieldById(String id) {
+		setOrderBy(id, OrderByType.NONE);
+		outputFields.removeReportField(id);
+//		if (store.getBusinessViewState() != null)
+//			store.getBusinessViewState().setOutputFields(outputFields.toList());
+	}
+
+	/**
+	 * 将报表另存为
+	 * 
+	 * @param parentNodeId
+	 * @param name
+	 * @param alias
+	 * @param desc
+	 */
+	public void saveAs(String parentNodeId, String name, String alias,
+			String desc) {
+		if(getBusinessView().getQueryType() == CatalogElementType.RAWSQL_BUSINESS_VIEW){
+			this.resetOutputFields();
+		}
+		
+		if (!isNewReport)
+			report.setId(UUIDGenerator.generate());
+		else {
+			isNewReport = false;
+			report.setType(CatalogElementType.SIMPLE_REPORT.name());
+		}
+		report.setAlias(alias);
+		report.setName(name);
+		report.setDesc(desc);
+		report.setContent(saveToXml());
+
+
+		FreeQueryDAOFactory.getReportDAO().save(report);
+
+		FreeQueryCatalogTreeHelper.getInstance().createSimpleReport(parentNodeId, report);
+	}
+
+	/**
+	 * 根据ID，覆盖某个报表
+	 * 
+	 * @param replacedReportId
+	 */
+	public void overwrite(String replacedReportId) {
+		if(getBusinessView().getQueryType() == CatalogElementType.RAWSQL_BUSINESS_VIEW){
+			this.resetOutputFields();
+		}
+		
+		FreeQueryModule.getInstance().getCatalogTreeModule().assertAccessible(replacedReportId, PurviewType.WRITE);
+
+		String tmpContent = this.saveToXml();
+		report = FreeQueryDAOFactory.getReportDAO().load(replacedReportId);
+		report.setDesc(this.getDesc());
+		report.setContent(tmpContent);
+
+		FreeQueryDAOFactory.getReportDAO().update(report);
+		ResAuditBO.getInstance().removeAudit(replacedReportId);
+	}
+
+	private Map<String, ParamValue> getParamValues() {
+		//return getParamValues(getAllParams());
+		return parameterPanel.getParamValues();
+	}
+
+//	private Map<String, ParamValue> getParamValuesIgnore(String paramId) {
+//		List<ReportParameterBO> tmpParams = getAllParams();
+//		for (ReportParameterBO param : tmpParams) {
+//			if (param.getId().equals(paramId)) {
+//				tmpParams.remove(param);
+//				break;
+//			}
+//		}
+//
+//		return getParamValues(tmpParams);
+//	}
+
+//	/**
+//	 * 取得报表当前已经设置的参数值
+//	 * 
+//	 * @return
+//	 */
+//	private Map<String, ParamValue> getParamValues(
+//			List<ReportParameterBO> tmpParams) {
+//		Map<String, ParamValue> paramValues = new LinkedHashMap<String, ParamValue>();
+//		// List<ReportParameterBO> tmpParams = getAllParams();
+//		for (ReportParameterBO tmpParam : tmpParams) {
+//			ParamValue v = null;
+//
+//			if (StringUtil.isNullOrEmpty(tmpParam.getValue())) {
+//				// TODO:是否将null转换为''，考虑将这个作为选项
+//				if (getBusinessView().isProcedureView() && ValueType.STRING.equals(tmpParam.getType())) {
+//					JSONObject json = new JSONObject(tmpParam.getComponentDefine());
+//					if (json.has("noNull") && "true".equalsIgnoreCase(json.getString("noNull"))) {
+//						v = new StrValue("''");
+//					}
+//				}
+//				paramValues.put(tmpParam.getId(), v);
+//				continue;
+//			}
+//
+//			switch (tmpParam.getType()) {
+//			case STRING: {
+//				if (StringUtil.isNullOrEmpty(tmpParam.getValue()))
+//					throw new BOFException(
+//							FreeQueryErrorCode.REPORT_STRING_PARAM_NO_VALUE);
+//
+//				
+//				if (tmpParam.isMultSelect()) {
+//					v = new MultiValue(tmpParam.getValue(), tmpParam.getType());
+//				} else {
+//					if (tmpParam.getValue().trim().startsWith("'"))
+//						v = new StrValue(tmpParam.getValue());
+//					else
+//						v = new StrValue("'" + tmpParam.getValue() + "'");
+//				}
+//				break;
+//			}
+//			
+//			case INTEGER:
+//			case DOUBLE: {
+//				if (StringUtil.isNullOrEmpty(tmpParam.getValue()))
+//					throw new BOFException(
+//							FreeQueryErrorCode.REPORT_NUMBER_PARAM_NO_VALUE);
+//
+//				if (tmpParam.isMultSelect()) {
+//					v = new MultiValue(tmpParam.getValue(), tmpParam.getType());
+//				} else {
+//					try {
+//						v = new NumValue(Double.valueOf(tmpParam.getValue()),
+//								tmpParam.getType());
+//					} catch (NumberFormatException e) {
+//						throw new BOFException(FreeQueryErrorCode.PARAM_TYPE_ERROR)
+//								.setDetail(tmpParam.getType().name() + ":"
+//										+ tmpParam.getValue());
+//					}
+//				}
+//				break;
+//			}
+//			case DATE:
+//			case TIME:
+//			case DATETIME:
+//				DBType dbType = this.getBusinessView().getDataSource().getDriverType();
+//				//如果是固化的操作日志参数驱动类型从取当前知识库的类型
+//				if(tmpParam.getName().equals("SYSTEM操作日志开始时间") || tmpParam.getName().equals("SYSTEM操作日志结束时间")){
+//					dbType = FreeQueryModule.getInstance().getDaoModule().getRepository().getDatabaseType();
+//				}
+//				v = new DateValue(tmpParam.getValue(), tmpParam.getType(), dbType);
+//				break;
+//			default:
+//				v = new StrValue(tmpParam.getValue());
+//			}
+//			paramValues.put(tmpParam.getId(), v);
+//		}
+//		return paramValues;
+//	}
+
+	/**
+	 * 执行报表。返回总行数
+	 * 
+	 * @return
+	 */
+//	public int execute() {
+		//什么也不做，只是为了接口兼容。
+//		return -1;
+//		synchronized (this) {
+//			synchronized (this.getBusinessView()) {
+//
+//				BusinessViewState state = buildViewState();
+//				if (transmitPrepareSql != null && transmitRelatedField != null) {
+//					if (store instanceof DBSQLResultStore) {
+//						Expression expr = getBusinessView().getTableExpression();
+//						DBType dbType = state.getDbType();
+//						if (dbType == DBType.ORACLE || dbType == DBType.ORACLE_OCI) {
+//							saveTransmitInfo(expr, transmitPrepareSql,
+//									transmitRelatedField, this.transmitTempTableName);
+//						}
+//					}
+//				}
+//				
+//				
+//				Map<String,AggregateMethod> backupAggregateInfo =getBizViewBOFieldAggrgateMethod(getBusinessView());
+//				int num = store.execute(getBusinessView(), state);
+//				setNeedRefresh(false);
+//				
+//				if(getBusinessView().getQueryType() == CatalogElementType.RAWSQL_BUSINESS_VIEW){
+//					List<BusinessViewOutputFieldBO> fields = getBusinessView().getOutputFieldList();
+//				
+//					List<ReportField> rfLst = new ArrayList<ReportField>();
+//					this.outputFields.removeAllFields();
+//					for(BusinessViewOutputFieldBO field: fields){
+//						ReportField rField = createReportField(field.getId());
+//						rfLst.add(rField);
+//						this.outputFields.addReportField(rField);
+//					}
+//					state.setOutputFields(rfLst);
+//				}
+//				
+//				setBizViewBOFieldAggregateMethod(getBusinessView(), backupAggregateInfo);
+//				
+//				return num;
+//			}
+//		}
+//	}
+	
+	private Map<String,AggregateMethod> getBizViewBOFieldAggrgateMethod(BusinessViewBO bizView){
+		Map<String,AggregateMethod> ret = new HashMap<String,AggregateMethod>();
+		List<BusinessViewOutputFieldBO> outputFieldList = bizView.getOutputFieldList();
+		for(BusinessViewOutputFieldBO f:outputFieldList){
+			ret.put(f.getId(),f.getAggregateMethod());
+		}
+		
+		return ret;
+	}
+	
+	private void setBizViewBOFieldAggregateMethod(BusinessViewBO bizView,Map<String,AggregateMethod> aggregateInfo){
+		List<BusinessViewOutputFieldBO> outputFieldList = bizView.getOutputFieldList();
+		for(BusinessViewOutputFieldBO f:outputFieldList){
+			AggregateMethod aggregateMethod = aggregateInfo.get(f.getId());
+			if(aggregateMethod == null)
+				aggregateMethod = AggregateMethod.NULL;
+			
+			f.setAggregateMethod(aggregateMethod);
+		}
+	}
+	
+	private void resetOutputFields(){
+		List<BusinessViewOutputFieldBO> fields = getBusinessView().getOutputFieldList();
+		
+		this.outputFields.removeAllFields();
+		for(BusinessViewOutputFieldBO field: fields){
+			ReportField rField = createReportField(field.getId());
+			this.outputFields.addReportField(rField);
+		}
+	}
+	
+	public boolean autoDetectOutputFields(){		
+		Set<String> fieldNameLst = this.getFieldNamesBySql();
+		List<ValueType> fieldTypeLst = this.getFieldTypesBySql();
+		boolean ret = this.getBusinessView().setOutputFields(fieldNameLst);
+		if(ret)
+			this.getBusinessView().setOutputFieldsType(fieldTypeLst);
+		return ret;
+	}
+	
+	public void autoDetectOutputFieldsType(){		
+		List<ValueType> fieldTypeLst = this.getFieldTypesBySql();
+		this.getBusinessView().setOutputFieldsType(fieldTypeLst);
+	}
+	
+	
+	/**
+	 * 返回报表总行数
+	 * 
+	 * @return
+	 */
+	public int getTotalRows() {
+//		if (getBusinessViewId() != null
+//				&& !"".equalsIgnoreCase(getBusinessViewId().trim())) {
+//			businessView = getBusinessView();
+//		}
+		BusinessViewState state = buildViewState();
+		if (getStore() instanceof DBSQLResultStore)
+			return ((DBSQLResultStore)getStore()).getDataRows(true);
+		else
+			return Integer.MAX_VALUE;		
+	}
+
+	public GridData explain() {
+//		if (getBusinessViewId() != null
+//				&& !"".equalsIgnoreCase(getBusinessViewId().trim())) {
+//			businessView = getBusinessView();
+//		}
+		return getStore().explain();
+
+	}
+	
+	public Set<String> getFieldNamesBySql(){
+//		if (getBusinessViewId() != null
+//				&& !"".equalsIgnoreCase(getBusinessViewId().trim())) {
+//			businessView = getBusinessView();
+//		}
+
+		List<BusinessViewOutputFieldBO> fields = getBusinessView().getRawOutputFieldIdList();
+		
+		BusinessViewState state = buildViewState();
+		
+		List<ReportField> rfLst = new ArrayList<ReportField>();
+		this.outputFields.removeAllFields();
+		for(BusinessViewOutputFieldBO field: fields){
+			ReportField rField = createReportField(field.getId());
+			rfLst.add(rField);
+			this.outputFields.addReportField(rField);
+		}
+		state.setOutputFields(rfLst);
+		
+		return getStore().getFieldNamesBySql();
+	}
+	
+	public List<ValueType> getFieldTypesBySql(){
+//		if (getBusinessViewId() != null
+//				&& !"".equalsIgnoreCase(getBusinessViewId().trim())) {
+//			businessView = getBusinessView();
+//		}
+		
+		BusinessViewState state = buildViewState();
+		if (getBusinessView().getMainQuery().getQueryType() == QueryType.RAWSQL){
+			List<BusinessViewOutputFieldBO> fields = getBusinessView().getRawOutputFieldIdList();
+			
+			//BusinessViewState state = buildViewState();
+			
+			List<ReportField> rfLst = new ArrayList<ReportField>();
+			this.outputFields.removeAllFields();
+			for(BusinessViewOutputFieldBO field: fields){
+				ReportField rField = createReportField(field.getId());
+				rfLst.add(rField);
+				this.outputFields.addReportField(rField);
+			}
+			state.setOutputFields(rfLst);
+		}
+	
+		return getStore().getFieldTypesBySql();
+	}
+
+	public BusinessViewState buildViewState() {
+		BusinessViewState state = new BusinessViewState();
+		state.setOrderBys(orderBys.toList());
+		state.setOutputFields(outputFields.toList());
+		state.setRowsPerPage(getRowsPerPage());
+		state.setSimpleFilter(simpleFilter);
+		state.setParamValues(getParamValues());
+		state.setOutputParameters(getBusinessView().getOutputParameters());
+		//如果是固化的操作日志视图驱动类型从取当前知识库的类型
+		//如果是固化的操作日志视图、审核查询驱动类型从取当前知识库的类型
+		if(getBusinessView().getId().equals("I2c94902b163282dd0116328ec4d90037") || 
+				getBusinessView().getId().equals("SYSTEM资源审核查询"))
+			state.setDbType(FreeQueryModule.getInstance().getDaoModule().getRepository().getDatabaseType());
+		else if(getBusinessView().getDataSource() != null) {
+			state.setDbType(getBusinessView().getDataSource().getDriverType());
+			state.setCharset(getBusinessView().getDataSource().getDbCharset());
+		}
+		state.setSubtotal(subtotalSetting);
+		state.setInitiatingReportId(getId());
+		state.setTransmitRelatedField(transmitRelatedField);
+		state.setTransmitTempTableName(transmitTempTableName);
+		state.setRetrieveCountSettingValue(getRetrieveCountSettingValue());
+		return state;
+	}
+
+	/**
+	 * 按照页号，获取报表执行结果。
+	 * 
+	 * @param pageNum
+	 *            第几页
+	 * @return
+	 */
+	public GridData getGridData(int pageNum) {
+		synchronized (this) {
+			synchronized (this.getBusinessView()) {
+				
+				BusinessViewState state = buildViewState();
+				Map<String,AggregateMethod> backupAggregateInfo =getBizViewBOFieldAggrgateMethod(getBusinessView());
+				
+				lastgrid = getStore().getGridData(pageNum);
+				
+				
+				if(getBusinessView().getQueryType() == CatalogElementType.RAWSQL_BUSINESS_VIEW){
+					List<BusinessViewOutputFieldBO> fields = getBusinessView().getOutputFieldList();
+				
+					List<ReportField> rfLst = new ArrayList<ReportField>();
+					this.outputFields.removeAllFields();
+					for(BusinessViewOutputFieldBO field: fields){
+						ReportField rField = createReportField(field.getId());
+						rfLst.add(rField);
+						this.outputFields.addReportField(rField);
+					}
+				}
+				
+				
+				setBizViewBOFieldAggregateMethod(getBusinessView(), backupAggregateInfo);
+				
+				int queryMaxRow = FreeQueryModule.getInstance().getUserManagerModule().getCurrentUserQueryMaxRow();
+				int startIndex = pageNum * this.getRowsPerPage();
+				if(queryMaxRow != Integer.MAX_VALUE) {
+					if(startIndex + lastgrid.getData().size() > queryMaxRow) {
+						throw new BOFException(
+								FreeQueryErrorCode.EXCEED_QUERY_MAX_ROW)
+								.setDetail("当前用户可查询最大行数为" + String.valueOf(queryMaxRow));
+					}
+				}
+				return lastgrid;
+			}
+		}
+	}
+	
+	
+	
+	public boolean isTooMuchRows(){
+		return getStore().isTooMuchRows();
+	}
+	
+	public GridData getLastGridData()
+	{
+		synchronized (this)
+		{
+			return lastgrid;
+		}
+	}
+	
+	public String getId() {
+		return report.getId();
+	}
+
+	public int getRowsPerPage() {
+		if (this.rowsPerPage < 0) {
+			String rowsPerPage = root.getAttribute(ATTR_ROWS_PER_PAGE);
+			if (!StringUtil.isNullOrEmpty(rowsPerPage))
+				this.rowsPerPage = Integer.parseInt(rowsPerPage);
+		}
+		if (this.defaultRowsPerPage < 0) {
+			//SystemConfig sysConfig = FreeQueryDAOFactory.getSystemConfigDAO().load(SysParams.QUERY_DEFAULT_ROWS.name());
+			ISystemConfig sysConfig = FreeQueryModule.getInstance().getSystemConfigService().getSystemConfig(SysParams.QUERY_DEFAULT_ROWS.name());
+			String rowsPerPage = sysConfig == null ? null : sysConfig.getValue();
+			if (!StringUtil.isNullOrEmpty(rowsPerPage))
+				this.defaultRowsPerPage = Integer.parseInt(rowsPerPage);
+		}
+		return this.rowsPerPage < 0 ? this.defaultRowsPerPage
+				: this.rowsPerPage;
+	}
+
+	public void setRowsPerPage(int rowsPerPage) {
+		this.rowsPerPage = rowsPerPage;
+		root.setAttribute(ATTR_ROWS_PER_PAGE, Integer.toString(rowsPerPage));
+	}
+	
+	public void setRowsPerPageToViewState(int rowsPerPage) {
+		getStore().setRowsPerPage(rowsPerPage);
+	}
+
+	public void setOrderBy(String fieldId, OrderByType orderByType) {
+		orderBys.setOrderBy(fieldId, orderByType);
+		setNeedRefresh(true);
+	}
+
+	public OrderByType getOrderBy(String fieldId) {
+		if (orderBys.getOrderBy(fieldId) == null) {
+			return OrderByType.NONE;
+		} else
+			return orderBys.getOrderBy(fieldId).getOrderByType();
+	}
+
+	public void setAlias(String alias) {
+		report.setAlias(alias);
+	}
+
+	public String getAlias() {
+		return report.getAlias();
+	}
+
+	public String getName(){
+		return report.getName();
+	}
+	public void setParentNodeId(String parentId) {
+		this.parentNodeId = parentId;
+	}
+
+	public String getParentNodeId() {
+		return this.parentNodeId;
+	}
+
+	public void setDesc(String desc) {
+		report.setDesc(desc);
+
+	}
+
+	public String getDesc() {
+		return report.getDesc();
+	}
+
+	public Condition createCondition(ConditionGroup parentGroup) {
+		return parentGroup.createCondition();
+	}
+
+	public ConditionGroup createConditionGroup(ConditionGroup parentGroup) {
+		return parentGroup.createConditionGroup();
+	}
+
+	public void removeConditionOrGroup(ConditionGroup parentGroup, int index) {
+		parentGroup.remove(index);
+	}
+
+	public List<CellData> getDistinctValue(String reportFieldId, int maxLength) {
+		return getStore().getDistinctValue(reportFieldId, maxLength);
+	}
+
+	public ConditionGroup getRootConditionGroup() {
+		return simpleFilter.getConditionGroup();
+	}
+
+	/**
+	 * 获取简单过滤条件信息
+	 * 
+	 * @param fieldId
+	 * @return 字符串列表。 {operation1,value1,groupType<and,or,not_and,not_or>[,operation2,value2]}
+	 */
+	public List<String> getAutoConditon(String fieldId) {
+		List<String> ret = new ArrayList<String>();
+		ConditionGroup autoGroup = simpleFilter.getAutoConditionGroup(fieldId);
+		if (autoGroup == null) {
+			return ret;
+		}
+
+		List<Conditionable> conditions = autoGroup.toList();
+		for (int i = conditions.size() - 1; i >= 0; i--) {
+			Conditionable con = conditions.get(i);
+			if (!(con instanceof Condition)) {
+				conditions.remove(con);
+				continue;
+			}
+
+			Condition tmpCondition = (Condition) con;
+			ret.add(tmpCondition.getOperator());
+			ret.add(tmpCondition.getValue());
+			ret.add(autoGroup.getGroupType().toString());
+		}
+		return ret;
+	}
+
+	public void setAutoCondition(String fieldId, String operator, String value) {
+		removeAutoCondition(fieldId);
+		ConditionGroup rootGroup = getRootConditionGroup()
+				.createConditionGroup();
+		rootGroup.setGroupType(ConditionGroupType.AND);
+		rootGroup.setFieldId(fieldId);
+		setNeedRefresh(true);
+
+		if (!StringUtil.isNullOrEmpty(value)) {
+			Condition cond = rootGroup.createCondition();
+			cond.setType(Condition.TYPE_SIMPLE);
+			cond.setFieldId(fieldId);
+			cond.setOperator(operator);
+			cond.setValue(value);
+		} else {
+			ConditionGroup group = rootGroup.createConditionGroup();
+			group.setGroupType(ConditionGroupType.OR);
+			group.setFieldId(fieldId);
+
+			Condition cond = group.createCondition();
+			cond.setType(Condition.TYPE_SIMPLE);
+			cond.setFieldId(fieldId);
+			cond.setOperator(operator);
+			cond.setValue(value);
+
+			cond = group.createCondition();
+			cond.setType(Condition.TYPE_SIMPLE);
+			cond.setFieldId(fieldId);
+			cond.setOperator(null);
+			cond.setValue(null);
+
+		}
+	}
+
+	public void setAutoCondition(String fieldId, String operator1,
+			String value1, ConditionGroupType groupType, String operator2,
+			String value2) {
+		removeAutoCondition(fieldId);
+		setNeedRefresh(true);
+		if ("".equals(operator1) || operator1 == null)
+			return;
+		ConditionGroup tmpGroup = getRootConditionGroup()
+				.createConditionGroup();
+		tmpGroup.setGroupType(groupType);
+		tmpGroup.setFieldId(fieldId);
+
+		Condition con1 = tmpGroup.createCondition();
+		con1.setType(Condition.TYPE_SIMPLE);
+		con1.setFieldId(fieldId);
+		con1.setOperator(operator1);
+		con1.setValue(value1);
+
+		if ("".equals(operator2) || operator2 == null)
+			return;
+
+		Condition con2 = tmpGroup.createCondition();
+		con2.setType(Condition.TYPE_SIMPLE);
+		con2.setFieldId(fieldId);
+		con2.setOperator(operator2);
+		con2.setValue(value2);
+	}
+
+	public void removeAutoCondition(String fieldId) {
+		simpleFilter.removeAutoCondition(fieldId);
+	}
+
+	public void swapFields(List<String> fieldIds) {
+		outputFields.swapFields(fieldIds);
+		setNeedRefresh(true);
+		if (getStore().getBusinessViewState() != null)
+			getStore().getBusinessViewState().setOutputFields(outputFields.toList());
+	}
+
+//	/**
+//	 * 获取参数默认值
+//	 * 
+//	 * @param ParamId
+//	 * @return
+//	 */
+//	public GridData getParamDefaultValue(String ParamId) {
+//		ReportParameterBO tmpParam = this.getOutputParameter(ParamId);
+//		switch (tmpParam.getDefaultType()) {
+//		case SQL:
+//			String sql = businessView.runTextQuery(getParamValues(), tmpParam
+//					.getDefaultValue());
+//			return getSQLResult(tmpParam.getDataSource().getId(), sql);
+//		case CONSTLIST:
+//			return new ConstParamValue(tmpParam.getDefaultValue());
+//		case FUNC:
+//			try{
+//				ParamFunction pf = (ParamFunction)Class.forName("com.freequery.expression.function." +tmpParam.getDefaultValue()).newInstance();
+//			return pf.getGridData();
+//			}catch(Exception e){
+//				log.error(e.getMessage(), e);
+//			}
+//			return null;
+//		default:
+//			return null;
+//		}
+//	}
+//
+//	/**
+//	 * 获取参数备选值
+//	 * 
+//	 * @param paramId
+//	 * @return
+//	 */
+//	public GridData getParamStandbyValue(String paramId) {
+//		ReportParameterBO tmpParam = this.getOutputParameter(paramId);
+//		switch (tmpParam.getStandByType()) {
+//		case SQL:
+//			String sql = businessView.runTextQuery(
+//					parameterPanel.getParamValues(), tmpParam.getStandByValue());
+//			return getSQLResult(tmpParam.getDataSource().getId(), sql);
+//		case CONSTLIST:
+//			return new ConstParamValue(tmpParam.getStandByValue());
+//		case FUNC:
+//			try{
+//				ParamFunction pf = (ParamFunction)Class.forName("com.freequery.expression.function." +tmpParam.getStandByValue()).newInstance();
+//			return pf.getGridData();
+//			}catch(Exception e){
+//				log.error(e.getMessage(), e);
+//			}
+//			return null;
+//			
+//		default:
+//			return null;
+//		}
+//	}
+//
+//	public GridData getParamRootValue(String paramId) {
+//		ReportParameterBO tmpParam = this.getOutputParameter(paramId);
+//		if (tmpParam.getComponentType() != ComponentType.DROPDOWNTREE)
+//			throw new BOFException(FreeQueryErrorCode.PARAM_TYPE_ERROR);
+//		String charset = tmpParam.getDataSource().getDbCharset();
+//		switch (tmpParam.getRootType()) {
+//		case SQL:
+//			String sql = businessView.runTextQuery(getParamValues(), tmpParam
+//					.getRootValue());
+//			sql = StringUtil.changeCharsetTo(sql,charset);
+//			return getSQLResult(tmpParam.getDataSource().getId(), sql);
+//		case CONSTLIST:
+//			return new ConstParamValue(tmpParam.getRootValue());
+//		case FUNC:
+//			try{
+//				ParamFunction pf = (ParamFunction)Class.forName("com.freequery.expression.function." +tmpParam.getRootValue()).newInstance();
+//			return pf.getGridData();
+//			}catch(Exception e){
+//				log.error(e.getMessage(), e);
+//			}
+//			return null;
+//		default:
+//			return null;
+//		}
+//	}
+//
+//	public GridData getParamChildValue(String paramId, String parentField,
+//			String parentId) {
+//		ReportParameterBO tmpParam = this.getOutputParameter(paramId);
+//		if (tmpParam.getComponentType() != ComponentType.DROPDOWNTREE)
+//			throw new BOFException(FreeQueryErrorCode.PARAM_TYPE_ERROR);
+//		switch (tmpParam.getStandByType()) {
+//		case SQL:
+//			String sql = businessView.runTextQuery(getParamValues(), tmpParam
+//					.getStandByValue());
+//			JSONObject json = new JSONObject(tmpParam.getComponentDefine());
+//			ParamComboBean paramCombo = (ParamComboBean) JSONObject.toBean(
+//					json, ParamComboBean.class);
+//			if (tmpParam.getDataSource().getDriverType() != DBType.INFORMIX) {
+//				sql = "select " + paramCombo.getStandby_value() + ","
+//						+ paramCombo.getStandby_alias() + " from (" + sql
+//						+ ") T where " + parentField + "=";
+//				// TODO
+//				if (tmpParam.getType() == ValueType.STRING)
+//					sql += "'" + parentId + "'";
+//				else
+//					sql += parentId;
+//				return getSQLResult(tmpParam.getDataSource().getId(), sql);
+//			} else {
+//				String subSQL = " where "
+//						+ parentField
+//						+ "="
+//						+ (tmpParam.getType() == ValueType.STRING ? "'"
+//								+ parentId + "'" : parentId)
+//						+ " into temp FQIfxTemp;select "
+//						+ paramCombo.getStandby_value() + ","
+//						+ paramCombo.getStandby_alias() + " from FQIfxTemp";
+//
+//				return getSQLResult(tmpParam.getDataSource().getId(), sql
+//						+ subSQL);
+//			}
+//		case CONSTLIST:
+//			// return new ConstParamValue(tmpParam.getRootValue());
+//			return null;
+//		case FUNC:
+//			try{
+//				ParamFunction pf = (ParamFunction)Class.forName("com.freequery.expression.function." +tmpParam.getStandByValue()).newInstance();
+//				if(pf instanceof GetSubDepartments){
+//					((GetSubDepartments)pf).setParentDepartmentId(parentId);
+//					return ((GetSubDepartments)pf).getGridData();
+//				}else
+//					return pf.getGridData();
+//			}catch(Exception e){
+//				log.error(e.getMessage(), e);
+//			}
+//			return null;
+//		default:
+//			return null;
+//		}
+//	}
+//
+//	private GridData getSQLResult(String dsId, String sql) {
+//		if (StringUtil.isNullOrEmpty(sql))
+//			return null;
+//		GridData gridData = SQLExecutor.execute(dsId, sql);
+//		return gridData;
+//	}
+
+	public BusinessViewBO getBusinessView() {
+		
+		if (StringUtil.isNullOrEmpty(getBusinessViewId())){
+			return null;
+		}
+
+		BusinessViewBO ret = MetaDataRuntimeContext.getInstance().searchBusinessView(getBusinessViewId());
+		if (ret == null)
+			ret = BusinessViewBOPool.getInstance().borrowObject(getBusinessViewId());
+		
+		return ret;
+		
+//		if (getBusinessView() == null 
+//				|| !getBusinessView().getId().equals(getBusinessViewId())){
+//			// businessView = new BusinessViewBO(getBusinessViewId());
+//			
+//			if (getBusinessViewId().equals("")) //如果报表没有BizViewID，直接返回null
+//				return null;
+//			
+//			businessView = MetaDataRuntimeContext.getInstance().searchBusinessView(
+//					getBusinessViewId());
+//			if (getBusinessView() == null)
+//				businessView = BusinessViewBOPool.getInstance().borrowObject(getBusinessViewId());
+//		}
+//		MetaDataRuntimeContext.getInstance().putRequestBusinessViewBO(getBusinessView());
+//		return getBusinessView();
+	}
+
+	public ReportParameterBO getOutputParameter(String paramId) {
+		return params.getReportParam(paramId);
+	}
+
+	public void setParamValue(ReportParameterBO p, String value,
+			String displayValue) {
+		((ReportParameterBO) p).setValue(value);
+		((ReportParameterBO) p).setDisplayValue(displayValue);
+		parameterPanel.setParameterValue(p.getId(), value, displayValue);
+		setNeedRefresh(true);
+	}
+
+	public void setAggregateMethod(String fieldId,
+			AggregateMethod aggregateMethod) {
+		getReportFieldById(fieldId).setAggregateMethod(aggregateMethod);
+		// orderBys.getOrderBy(fieldId).setAggregateMethod(aggregateMethod);
+		setNeedRefresh(true);
+	}
+
+	public void cancelQuery() throws SQLException {
+		getStore().cancenQuery();
+	}
+
+	public ExcelTemplateDefine getExcelTemplateDefine() {
+		return this.getBusinessView().getExcelTemplateDefine();
+	}
+
+	public InputStream getExcelTemplate() {
+		return this.getBusinessView().getExcelTemplate();
+	}
+
+	public boolean getAutoRefresh() {
+		String refresh = this.root.getAttribute(ATTR_AUTO_REFRESH);
+		if (StringUtil.isNullOrEmpty(refresh)) {
+			String defaultValue = ConfigService.getInstance().getConfigValue(
+					SysParams.REPORT_AUTO_REFRESH);
+			return StringUtil.isNullOrEmpty(defaultValue) ? true : Boolean
+					.valueOf(defaultValue);
+		}
+
+		return Boolean.valueOf(refresh);
+	}
+
+	public String getLayout() {
+		return this.root.getAttribute(ATTR_LAYOUT);
+	}
+
+	private Element getClientConfigElem() {
+		NodeList nodes = root.getElementsByTagName(EL_CLIENT_CONFIG);
+		Element configElem = null;
+		if (nodes.getLength() == 0) {
+			configElem = root.getOwnerDocument()
+					.createElement(EL_CLIENT_CONFIG);
+			root.appendChild(configElem);
+		} else
+			configElem = (Element) nodes.item(0);
+		return configElem;
+	}
+
+	public String getClientConfig() {
+		return XmlUtility.getTextContent(getClientConfigElem());
+	}
+
+	public void setClientConfig(String value) {
+		Element elem = getClientConfigElem();
+		XmlUtility.setTextContent(elem, value);
+	}
+
+	/**
+	 * 设置是否自动刷新。
+	 * 
+	 * @param b
+	 */
+	public void setAutoRefresh(boolean b) {
+		this.root.setAttribute(ATTR_AUTO_REFRESH, String.valueOf(b));
+	}
+
+	public void setLayout(String layout) {
+		this.root.setAttribute(ATTR_LAYOUT, layout);
+	}
+
+	public String createChart(ChartDefine setting) {
+		if (chartsElement == null) {
+			chartsElement = doc.createElement(EL_CHARTS);
+			root.appendChild(chartsElement);
+		}
+		Chart chart = new Chart(chartsElement, setting);
+		this.charts.add(chart);
+		return chart.getId();
+	}
+
+	public Chart getChart(String chartId) {
+		for (Chart chart : charts)
+			if (chart.getId().equals(chartId))
+				return chart;
+		return null;
+	}
+
+	public void updateChart(String chartId, ChartDefine setting) {
+		Chart chart = getChart(chartId);
+		if (chart == null)
+			throw new BOFException(FreeQueryErrorCode.NOT_EXIST_QUERY_OBJECT);
+		chart.setDefine(setting);
+	}
+
+	public List<Chart> getCharts() {
+		return charts;
+	}
+
+	public void removeChart(String chartId) {
+		for (Iterator<Chart> it = charts.iterator(); it.hasNext();) {
+			Chart chart = it.next();
+			if (chart.getId().equals(chartId)) {
+				this.chartsElement.removeChild(chart.getChartElement());
+				it.remove();
+			}
+		}
+	}
+
+	public String getMultiHeaders() {
+		return this.getBusinessView().getMultiHeaders();
+	}
+
+	public String getParamLayout() {
+		return this.getBusinessView().getParamLayout();
+	}
+
+	public void close() {
+		if(paramProxy != null)
+			paramProxy.close();
+//		this.getStore().close();
+		BusinessViewBOPool.getInstance().returnObject(getBusinessView().getId(), getBusinessView());
+	}
+
+	public SubtotalSetting getSubtotalSetting() {
+		return subtotalSetting;
+	}
+
+	public void setSubtotalSetting(SubtotalSetting setting) {
+		this.subtotalSetting = setting;
+		
+		if(this.subtotalSetting != null){
+			this.subtotalSetting.saveToXml(root);
+		}
+	}
+	
+	public void setSubtotalToStore(SubtotalSetting setting){
+		if((this.getStore() != null) && (this.getStore().getBusinessViewState() != null)){
+			this.getStore().getBusinessViewState().setSubtotal(setting);
+		}
+	}
+
+	public void dump(String reportId) {
+		ReportDumpHelper.doSerial(getGridData(0), reportId);
+	}
+
+	public List<Parameter> getEnumerableParameters() {
+		List<Parameter> ret = new ArrayList<Parameter>();
+		BusinessViewBO bv = getBusinessView();
+		List<OutputParameter> params = bv.getOutputParameters();
+		for (Parameter param : params)
+			if (param.getComponentType() == ComponentType.COMBOBOX
+					|| param.getComponentType() == ComponentType.DROPDOWNTREE
+					|| param.getComponentType() == ComponentType.LISTDIALOG
+					|| param.getComponentType() == ComponentType.TREEDIALOG)
+				ret.add(param);
+		return ret;
+	}
+
+	public List<Map<String, String>> getAllParameterCombination(
+			List<String> paramIdList) {
+		return null;
+	}
+
+	public void doCombination(List<List<String>> paramList, int index,
+			List<String> temp, List<List<String>> combinationList) {
+		List<String> valueList = paramList.get(index);
+		for (String value : valueList) {
+			temp.add(value);
+			if (paramList.size() - 1 == index) {
+				List<String> combination = new ArrayList<String>();
+				combination.addAll(temp);
+				combinationList.add(combination);
+			} else {
+				doCombination(paramList, index + 1, temp, combinationList);
+			}
+			temp.remove(index);
+		}
+	}
+
+	public boolean isAutoCloseAfterExported() {
+		return autoCloseAfterExported;
+	}
+
+	public void setAutoCloseAfterExported(boolean autoCloseAfterExported) {
+		this.autoCloseAfterExported = autoCloseAfterExported;
+	}
+	
+	public JumpStore getColJumpStore() {
+		return colJumpStore;
+	}
+	
+	public void setColJumpStore(SimpleReportBO srcReportBO, List<String> srcRelatedFieldIdList,
+			List<String> destRelatedFieldIdList, List<List<String>> transmitFieldList) {
+		if (srcRelatedFieldIdList.size() != destRelatedFieldIdList.size())
+			throw new BOFException(FreeQueryErrorCode.PARAM_VALUE_ERROR);
+		JumpStore hadSaveColStore = srcReportBO.getColJumpStore();
+		JumpStore toSaveColStore = new JumpStore();
+		for (int i = 0; i < srcRelatedFieldIdList.size(); i++) {
+			String key = srcRelatedFieldIdList.get(i);
+			String value = destRelatedFieldIdList.get(i);
+			toSaveColStore.getRelatedFieldIdMap().put(key, value);
+		}
+		List<String> transmitFieldIdList = new ArrayList<String>();
+		for (List<String> fieldData : transmitFieldList) {
+			toSaveColStore.getTransmitFieldList().add(fieldData);
+			transmitFieldIdList.add(fieldData.get(0));
+		}
+		int rpp = srcReportBO.getRowsPerPage();
+		try {
+			srcReportBO.setRowsPerPage(Integer.MAX_VALUE);
+//			srcReportBO.execute();
+			GridData data = srcReportBO.getGridData(0);
+			List<ReportField> fields = data.getHeaders();
+			List<List<CellData>> dataList = data.getData();
+			for (int i = 0; i < dataList.size(); i++) {
+				List<CellData> row = dataList.get(i);
+				List<String> keyIdList = new ArrayList<String>();
+				List<String> keyDataList = new ArrayList<String>();
+				List<String> valDataList = new ArrayList<String>();
+				for (int j = 0; j < fields.size(); j++) {
+					String tempId = fields.get(j).getId();
+					if (srcRelatedFieldIdList.contains(tempId)) {
+						keyIdList.add(tempId);
+						keyDataList.add(row.get(j).getDisplayValue());
+					}
+					if (transmitFieldIdList.contains(tempId))
+						valDataList.add(row.get(j).getDisplayValue());
+				}
+				if (hadSaveColStore != null) {
+					List<String> keyId = new ArrayList<String>();
+					List<String> keyVal = new ArrayList<String>();
+					for (int j = 0; j < fields.size(); j++) {
+						String tempId = fields.get(j).getId();
+						if (hadSaveColStore.getRelatedFieldIdMap().values().contains(tempId)) {
+							keyId.add(tempId);
+							keyVal.add(row.get(j).getDisplayValue());
+						}
+					}
+					for (String fieldId : hadSaveColStore.getTransmitFieldIdList()) {
+						if (srcRelatedFieldIdList.contains(fieldId)) {
+							keyIdList.add(fieldId);
+							keyDataList.add(hadSaveColStore.getDataByFieldId(keyId, keyVal, fieldId));
+						}
+						if (transmitFieldIdList.contains(fieldId))
+							valDataList.add(hadSaveColStore.getDataByFieldId(keyId, keyVal, fieldId));
+					}
+				}
+				toSaveColStore.putRowData(keyIdList, keyDataList, valDataList);
+			}
+		} finally {
+			srcReportBO.setRowsPerPage(rpp);
+//			srcReportBO.execute();
+		}
+		colJumpStore = toSaveColStore;
+	}
+
+	public String getTransmitPrepareSql() {
+		return transmitPrepareSql;
+	}
+
+	public ReportField getTransmitRelatedField() {
+		return transmitRelatedField;
+	}
+
+	public void setTransmitInfo(String transmitPrepareSql, ReportField transmitRelatedField) {
+		this.transmitPrepareSql = transmitPrepareSql;
+		this.transmitRelatedField = transmitRelatedField;
+	}
+	
+//	public int executeQueryInMemory() {
+//		int rows = store.getAllDataRowCount();
+//		if(rows >= 0) {
+//			BusinessViewState state = buildViewState();
+//			if(getBusinessView().getQueryType() == CatalogElementType.RAWSQL_BUSINESS_VIEW){
+//				autoDetectOutputFields();
+//				List<BusinessViewOutputFieldBO> fields = getBusinessView().getOutputFieldList();
+//					
+//				List<ReportField> rfLst = new ArrayList<ReportField>();
+//				this.outputFields.removeAllFields();
+//				for(BusinessViewOutputFieldBO field: fields){
+//					ReportField rField = createReportField(field.getId());
+//					rfLst.add(rField);
+//					this.outputFields.addReportField(rField);
+//				}
+//				state.setOutputFields(rfLst);
+//			}
+//			
+//			store.setBusinessViewState(state);
+//			return rows;
+//		}
+//		return execute();
+//	}
+	
+	public void setTransmitInfo(String transmitPrepareSql, ReportField transmitRelatedField, String tempTableName, String dataSourceId) {
+		////////////////////
+		//
+		Connection conn = null;
+		Statement stmt = null;
+		try {
+			log.debug("Writing temp sql: " + transmitPrepareSql);
+			String[] sqls = transmitPrepareSql.split(";(( )*(\\n|\\r)+)?");
+			long start = System.currentTimeMillis();
+			conn = ConnectionPool.getInstance().getConnection(dataSourceId);
+			stmt = conn.createStatement();
+			for (String sql : sqls) {
+				if (StringUtil.isNullOrEmpty(sql))
+					continue;
+				stmt.addBatch(sql);
+			}
+			stmt.executeBatch();
+			long end = System.currentTimeMillis();
+			log.debug("Writing temp during: " + (end-start));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			try {
+				if ( null != stmt )
+					stmt.close();
+				if ( null != conn )
+					conn.close();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		//
+		////////////////////
+		this.transmitPrepareSql = "select 'a' from dual; ";
+		this.transmitRelatedField = transmitRelatedField;
+		this.transmitTempTableName = tempTableName;
+	}
+	/*
+	 * 行数据传递之临时表方式
+	 */
+	private void saveTransmitInfo(Expression tableExpression, String sql, ReportField field, String tempTableName) {
+		if (StringUtil.isNullOrEmpty(sql))
+			return;
+		final String prepareSql = sql;
+		tableExpression.addExpressionItem(new IExpressionItem() {
+			public SQLPart getSQLPart() {
+				SQLPart result = new SQLPart(SQLPartType.SQLSTR, "");
+				result.setPrepareSqlStr(prepareSql);
+				return result;
+			}			
+		});
+	}
+
+	public void valueBound(HttpSessionBindingEvent arg0) {
+	}
+
+	public void valueUnbound(HttpSessionBindingEvent arg0) {
+		if ( this.transmitTempTableName == null  || !this.transmitTempTableName.startsWith(TempTablePool.TEMP_TABLE_PREFIX) ) {
+			return; 
+		}
+		TempTablePool.cleanupTempTables(this.transmitTempTableName, this.getBusinessView().getDataSourceID());
+	}
+
+	public void setParameterPanel(IParameterPanel parameterPanel) {
+		this.parameterPanel = parameterPanel;
+	}
+
+	public IParameterPanel getParameterPanel() {
+		return parameterPanel;
+	}
+	
+	public ReportFieldList getOutputFields(){
+		return this.outputFields;
+	}
+
+	public Report getReport() {
+		return report;
+	}
+
+	public boolean isNeedRefresh() {
+		return needRefresh;
+	}
+
+	public void setNeedRefresh(boolean needRefresh) {
+		this.needRefresh = needRefresh;
+	}
+
+	public int getRetrieveCountSettingValue() {
+		return retrieveCountSettingValue;
+	}
+
+	public void setRetrieveCountSettingValue(int retrieveCountSettingValue) {
+		this.retrieveCountSettingValue = retrieveCountSettingValue;
+		root.setAttribute(ATTR_RETRIEVE_COUNT, Integer.toString(retrieveCountSettingValue));
+	}
+
+	public IParameterProxy getParamProxy() {
+		return paramProxy;
+	}
+
+	public void setParamProxy(IParameterProxy paramProxy) {
+		this.paramProxy = paramProxy;
+	}
+
+}

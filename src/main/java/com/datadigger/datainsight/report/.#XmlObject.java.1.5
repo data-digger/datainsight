@@ -1,0 +1,42 @@
+package com.freequery.report;
+
+import org.w3c.dom.Element;
+
+import bof.util.XmlUtility;
+
+public abstract class XmlObject {
+	
+	public static final String EL_FIELD = "field";
+	
+	public static final String ATTR_NAME="name";
+	public static final String ATTR_ID = "id";
+	public static final String ATTR_FIELD_ID = "field-id";
+	public static final String ATTR_OPERATOR = "operator";
+	public static final String ATTR_VALUE = "value";
+	public static final String ATTR_DISPLAYVALUE = "display-value";
+	public static final String ATTR_VALUE_TYPE = "value-type";
+	public static final String ATTR_ALIAS = "alias";
+	public static final String ATTR_DESC = "desc";
+	public static final String ATTR_TYPE = "type";
+	public static final String ATTR_AGGREGATE_METHOD = "aggregate-method";
+	
+	protected Element elem;
+	protected XmlObject(Element elem){
+		this.elem = elem;		
+	}
+	
+	public String toXml(){
+		return XmlUtility.save(elem);
+	}
+	
+	public String toString() {
+		return toXml();
+	}
+	/*
+	 *  ·µ»ØElement
+	 */
+	public Element toElement(){
+		return elem;
+	}
+	
+}

@@ -11,7 +11,7 @@ public class ParameterValue implements Serializable {
 	
 	private List<DateParameter> standByDate;
 	
-	private TreeNode standByRoot;
+	//private TreeNode standByRoot;
 
 	public List<ListParameter> getStandByList() {
 		return standByList;
@@ -27,14 +27,6 @@ public class ParameterValue implements Serializable {
 
 	public void setStandByDate(List<DateParameter> standByDate) {
 		this.standByDate = standByDate;
-	}
-
-	public TreeNode getStandByRoot() {
-		return standByRoot;
-	}
-
-	public void setStandByRoot(TreeNode standByRoot) {
-		this.standByRoot = standByRoot;
 	}
 
 }

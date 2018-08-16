@@ -1,0 +1,159 @@
+package com.freequery.report;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+
+import org.w3c.dom.Element;
+
+import bof.util.StringUtil;
+import bof.util.ValueType;
+
+import com.freequery.metadata.BusinessViewOutputFieldBO;
+import com.freequery.statemanager.MetaDataRuntimeContext;
+import com.freequery.util.AggregateMethod;
+import com.freequery.util.SessionUUIDGenerator;
+
+public class ReportField extends XmlObject{
+	String format;
+	String tempId;
+	String refId;
+	BusinessViewOutputFieldBO businessViewField;
+
+	public ReportField() {
+		super(null);
+	}
+	
+	public ReportField (Element elem){
+		super(elem);
+		String id = getId();
+		if(!StringUtil.isNullOrEmpty(id)) {
+			businessViewField = (BusinessViewOutputFieldBO)MetaDataRuntimeContext.getInstance().searchAbstractFieldBO(id);
+			if(businessViewField == null) {
+				String alias = getAlias();
+				if(StringUtil.isNullOrEmpty(alias))
+					elem.setAttribute(ATTR_ALIAS, "Deleted Field");
+			}
+			else
+			{
+				this.refId = businessViewField.getReferencedFieldId();
+			}
+		}
+	}
+
+	public String getAlias() {
+		String tmpAlias = elem.getAttribute(ATTR_ALIAS); 
+		if (StringUtil.isNullOrEmpty(tmpAlias) && businessViewField != null){
+			tmpAlias = businessViewField.getAlias();
+			if(tmpAlias == null)
+				tmpAlias = businessViewField.getName();
+			setAlias(tmpAlias);			
+		}
+		return tmpAlias;
+	}
+
+	public void setAlias(String alias) {
+		if(businessViewField != null) {
+			if(StringUtil.equals(businessViewField.getAlias(), alias)) {//忽略没有修改别名的情况
+				elem.removeAttribute(ATTR_ALIAS);
+				return;
+			}
+		}
+		elem.setAttribute(ATTR_ALIAS,alias);
+	}
+	
+	public void setAliasFromRawQuery(String alias){
+		elem.setAttribute(ATTR_ALIAS,alias);
+	}
+
+	public String getId() {
+		return elem.getAttribute(ATTR_ID);
+	}
+
+	public void setId(String fieldID) {
+		elem.setAttribute(ATTR_ID,fieldID);
+		String id = fieldID;
+		if(!StringUtil.isNullOrEmpty(id)) {
+			businessViewField = (BusinessViewOutputFieldBO)MetaDataRuntimeContext.getInstance().searchAbstractFieldBO(id);
+			if(businessViewField == null) {
+				elem.setAttribute(ATTR_ALIAS, "Deleted Field");
+			}
+			else
+			{
+				this.refId = businessViewField.getReferencedFieldId();
+			}
+		}
+	}
+
+	public String getRefId(){
+		
+		return this.refId;
+	}
+	
+	public String getFormat() {
+		return format;
+	}
+
+	public void setFormat(String format) {
+		this.format = format;
+	}
+
+	public String getTempId() {		
+		if(tempId == null)
+			tempId =  "F" + SessionUUIDGenerator.getTempID(getId()); 
+		return tempId;
+	}
+
+	public AggregateMethod getAggregateMethod() {
+		if(elem.getAttribute(ATTR_AGGREGATE_METHOD)==null || elem.getAttribute(ATTR_AGGREGATE_METHOD).equals(""))
+			return AggregateMethod.NULL;
+		return AggregateMethod.valueOf(elem.getAttribute(ATTR_AGGREGATE_METHOD));	
+	}
+
+	public void setAggregateMethod(AggregateMethod aggregateMethod) {
+		elem.setAttribute(ATTR_AGGREGATE_METHOD,aggregateMethod.toString());
+	}	
+
+	public ValueType getDataType(){
+		if(businessViewField != null){
+			
+			if (this.getAggregateMethod()==AggregateMethod.COUNT ||this.getAggregateMethod()==AggregateMethod.DISTINCT_COUNT)
+				return ValueType.INTEGER;
+			else
+				return businessViewField.getDataType();
+		}
+		else
+			return ValueType.UNKNOWN;
+	}
+
+	public String getDataFormat(){
+		if(businessViewField != null){
+			if (this.getAggregateMethod()==AggregateMethod.COUNT ||this.getAggregateMethod()==AggregateMethod.DISTINCT_COUNT){
+				return "<整型-默认值>";
+			}
+			else
+				return businessViewField.getDataFormat();
+		}
+		else
+			return null;
+	}
+	
+	public String getTransformRule() {
+		if(businessViewField != null)
+			return businessViewField.getTransformRule();
+		else
+			return null;
+	}
+
+	public BusinessViewOutputFieldBO getBusinessViewField() {
+		return businessViewField;
+	}
+	
+	public String getDesc() {
+		if(businessViewField != null)
+			return businessViewField.getDesc();
+		else
+			return null;
+	}
+}

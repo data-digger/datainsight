@@ -33,4 +33,14 @@ public class BizViewController {
     public GridData perviewBizView(String bizViewId,String pageSize) { 
     		return metaDataService.getBizViewData(bizViewId,pageSize);
    } 
+    @RequestMapping("/bizview/initData")
+    public Map<String,Object> initGridDataWithParameter(String dataSourceId,String expStr) { 
+    		return metaDataService.initGridDataWithParameter(dataSourceId,expStr);
+   } 
+    
+    @RequestMapping("/bizview/update")
+    public GridData updateDataWithParameter(String dataSourceId,String expStr,String JSONParam) { 
+    		return metaDataService.updateDataWithParameter(dataSourceId,expStr,JSONParam);
+   } 
+    
 }

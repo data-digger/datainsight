@@ -43,9 +43,15 @@ import com.datadigger.datainsight.domain.DomainType;
 import com.datadigger.datainsight.domain.Report;
 import com.datadigger.datainsight.domain.DataTable;
 import com.datadigger.datainsight.domain.TableData;
+import com.datadigger.datainsight.expression.Expression;
+import com.datadigger.datainsight.expression.IExpressionItem;
+import com.datadigger.datainsight.param.ParamHandler;
+import com.datadigger.datainsight.param.ParamValue;
 import com.datadigger.datainsight.domain.Parameter;
+import com.datadigger.datainsight.domain.ParameterData;
 import com.datadigger.datainsight.domain.BizViewColumn;
 import com.datadigger.datainsight.query.SQLExecutor;
+import com.datadigger.datainsight.report.SimpleReportBO;
 import com.datadigger.datainsight.repository.BizViewRepository;
 import com.datadigger.datainsight.repository.ChartRepository;
 import com.datadigger.datainsight.repository.DataSourceRepository;
@@ -100,6 +106,10 @@ public class MetaDataService  {
 		dastaSourceRespository.save(dataSource);
         log.debug("Create DataSource -- "+ dataSource.getName());
 		return dataSource;
+	}
+	
+	public DataSource findOneDataSouece(String id) {
+		return dastaSourceRespository.findOne(id);
 	}
 	/*
 	 * 保存查询器对象
@@ -921,4 +931,110 @@ public class MetaDataService  {
 		}
 		return rdo.toJSONString();
 	}
+	
+	public String getExpressionText(String expStr,boolean isInit,JSONObject valueObject) {
+		Expression exp = new Expression(expStr);
+		List<String> paramIds = exp.getParameterIDsByList();
+		if(paramIds.size() > 0) {
+			List<Parameter> paramList = (List<Parameter>) parameterRepository.findAll(paramIds);
+			ParamHandler ph = new ParamHandler(dastaSourceRespository,paramList);
+			Map<String, ParamValue> paramValues = new HashMap<>();
+			//初始化需要获取默认值生成默认SQL语句
+			if (isInit) {
+				paramValues = ph.getDefaultParamValues();
+			} else {
+				paramValues = ph.getSelectedParamValues(valueObject);
+			}
+			
+			exp.setParametersValue(paramValues);
+		}
+		
+		String sql = exp.getSQLPart().getSqlStr();
+		return sql;
+	}
+	
+	public Map<String,ParameterData> getParameterDatas(String expStr){
+		Expression exp = new Expression(expStr);
+		List<String> paramIds = exp.getParameterIDsByList();
+		Map<String,ParameterData> pds = new HashMap<>();
+		if(paramIds.size() > 0) {
+			List<Parameter> paramList = (List<Parameter>) parameterRepository.findAll(paramIds);
+			ParamHandler ph = new ParamHandler(dastaSourceRespository,paramList);
+			pds = ph.getParameterDatas();
+//			Map<String,List<ListParameter>> standByValues = ph.getStandByValues();
+//			for(int i = 0; i < paramList.size(); i++) {
+//				Parameter pd = paramList.get(i);
+//				ParameterData pdd = new ParameterData(pd);
+//				pdd.setStandByList(standByValues.get(pd.getId()));
+//				pds.put(pd.getId(), pdd);
+//			}
+		
+		}
+		return pds;
+	}
+	
+	public GridData getGridData (String dataSourceId, String sql) {
+		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
+		GridData gd = SQLExecutor.execute(ds, sql);
+		return gd;
+	}
+	public GridData getGridData (DataSource ds, String sql) {
+		GridData gd = SQLExecutor.execute(ds, sql);
+		return gd;
+	}
+	
+	public Map<String,Object> initGridDataWithParameter(String dataSourceId,String expStr){
+		Map<String,Object> result = new HashMap<>();
+		DataSource ds = findOneDataSouece(dataSourceId);
+		String sql = getExpressionText(expStr,true,null);
+		GridData gd = getGridData(ds,sql);
+		Map<String,ParameterData> pds = getParameterDatas(expStr);
+		result.put("data", gd);
+		result.put("pIds", pds.keySet());
+		result.put("paramters", pds);
+		return result;
+	}
+	
+	public List<ListParameter> getSqlStandBy(String dataSourceId,String expStr){
+		List<ListParameter> standByValue = new ArrayList<>();
+		ParamHandler ph = new ParamHandler();
+		DataSource ds = findOneDataSouece(dataSourceId);
+		ph.buildSqlStandBy(ds, expStr, standByValue);
+		return standByValue;
+	}
+	
+	public GridData updateDataWithParameter(String dataSourceId,String expStr,String JSONParam) {
+		JSONObject valueObject = (JSONObject) JSON.parse(JSONParam);
+		DataSource ds = findOneDataSouece(dataSourceId);
+		String sql = getExpressionText(expStr,false,valueObject);
+		GridData gd = getGridData(ds,sql);
+		return gd;
+	}
+//	
+//	public GridData updateBizViewData(String JSONparam) {
+//		JSONObject o = (JSONObject) JSON.parse(JSONparam);
+//		String bizViewId = o.getString("bizViewId");
+//		JSONObject paramSelected = o.getJSONObject("paramSelected");
+//		BizView bizView = bizViewRespository.findOne(bizViewId);
+//    		String dataSourceId = bizView.getDataSourceId();
+//    		DataSource ds = dastaSourceRespository.findOne(dataSourceId);
+//    		String sqlJSON = bizView.getDefineJSON();
+//    		List<Object> paramValues = new ArrayList<Object>();
+//
+//    	    String regEx = "\\^.*?\\^";
+//    	    Matcher matcher = matchRegEx(sqlJSON,regEx);
+//    	    
+//    	    while(matcher.find()) { 
+//    	    		String pStr = matcher.group();
+//    	    		int len = pStr.length();
+//    	    		String pId = pStr.substring(1, len-1);
+//    	    		String pv = paramSelected.getString(pId);
+//    	    		paramValues.add(pv);
+//    	   } 
+//    	    String paramSql = matcher.replaceAll("?"); 
+//    	    return SQLExecutor.execute(ds, paramSql, paramValues);
+//		
+//	}
+	
+	
 }

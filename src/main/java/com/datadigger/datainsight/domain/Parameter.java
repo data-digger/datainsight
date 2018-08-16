@@ -20,11 +20,10 @@ import com.datadigger.datainsight.util.ValueType;
 /**
  * 
  * defineJSON:{
- *   componetType:"TREE",//LIST,DATE
-     valueType:"String",  //Integer //Double
+ *   componetType:"LIST",//LIST,DATE
      valueSource:"static", //SQL
-     defalutDefinedefine:{{"key","value"}}, // {select key,value from table}
-     standbyDefinedefine:{{"key","value"}}, // {select key,value from table}   
+     defalutDefine:{{"key","value"}}, // {select key,value from table}
+     standbyDefine:{{"key","value"}}, // {select key,value from table}   
  * }
  */
 
